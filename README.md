@@ -153,6 +153,14 @@ atau gerakannya terlalu kecil/cepat.
      (putih bersih, latar hitam), lalu tekan `s` untuk menyimpan.
      Hasilnya otomatis dipakai game berikutnya lewat
      `hsv_calibration.json`.
+- Ukuran panel preview kamera bisa diubah di `config.py`
+  (`CAMERA_PANEL_WIDTH`, `CAMERA_PANEL_HEIGHT`, `CAMERA_PANEL_ALPHA`).
+  Hati-hati kalau dibuat terlalu besar karena bisa menutupi karakter
+  yang berada di tengah layar. Preview ditangkap 640x480 supaya tajam,
+  sedangkan tracking tetap diproses di 320x240
+  (`GESTURE_PROCESS_WIDTH/HEIGHT`).
+- Kalau tampilan kamera terasa seperti "cermin" yang tidak kamu
+  inginkan, set `CAMERA_MIRROR = False` di `config.py`.
 - Kalau kamera tidak terdeteksi sama sekali (atau kamu sedang tidak
   punya webcam), game tetap bisa dimainkan penuh memakai fallback
   tombol `1`-`5` untuk menguji semua jurus.

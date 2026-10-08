@@ -80,9 +80,21 @@ ENEMY_DIFFICULTY_SPEED_SCALE_PER_MIN = 0.05
 # Gestur / Kamera (OpenCV murni, TANPA mediapipe)
 # ---------------------------------------------------------------------------
 CAMERA_INDEX = 0
-CAMERA_CAPTURE_WIDTH = 320
-CAMERA_CAPTURE_HEIGHT = 240
+# Resolusi tangkapan kamera (dipakai untuk preview, makin besar makin tajam)
+CAMERA_CAPTURE_WIDTH = 640
+CAMERA_CAPTURE_HEIGHT = 480
+# Resolusi kerja untuk tracking tangan. Semua threshold piksel di bawah
+# (GESTURE_MIN_CONTOUR_AREA, GESTURE_MIN_BOUNDING_BOX, dst) dituning untuk
+# ukuran ini, jadi jangan diubah kecuali threshold-nya ikut disesuaikan.
+GESTURE_PROCESS_WIDTH = 320
+GESTURE_PROCESS_HEIGHT = 240
 CAMERA_MIRROR = True          # flip horizontal biar berasa seperti cermin
+
+# Ukuran panel preview kamera di pojok kanan-bawah layar game
+CAMERA_PANEL_WIDTH = 400
+CAMERA_PANEL_HEIGHT = 300
+CAMERA_PANEL_MARGIN = 16
+CAMERA_PANEL_ALPHA = 225      # 0-255, makin kecil makin transparan
 
 # mode deteksi tangan: "skin" (warna kulit) atau "marker" (benda berwarna cerah)
 GESTURE_DETECTION_MODE = "skin"

@@ -1,4 +1,4 @@
-"""game/camera_overlay.py -- menampilkan preview kamera kecil + lintasan gestur di HUD."""
+"""game/camera_overlay.py -- menampilkan preview kamera + lintasan gestur di HUD."""
 
 import cv2
 import numpy as np
@@ -8,23 +8,33 @@ import config
 
 
 def cv2_frame_to_surface(frame):
-    """Konversi frame OpenCV (BGR, HxWx3) jadi pygame.Surface."""
+    """
+    Konversi frame OpenCV (BGR, array [y][x]) jadi pygame.Surface.
+
+    pygame.surfarray memakai indeks [x][y], sedangkan OpenCV [y][x], jadi
+    cukup menukar sumbu 0 dan 1 (transpose). Jangan ditambah rot90/flip:
+    itu membuat gambar terputar 180 derajat (terbalik).
+    """
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    rgb = np.rot90(rgb)
-    surface = pygame.surfarray.make_surface(rgb)
-    surface = pygame.transform.flip(surface, False, True)
-    return surface
+    rgb = np.ascontiguousarray(rgb.swapaxes(0, 1))
+    return pygame.surfarray.make_surface(rgb)
 
 
-def draw_camera_panel(target_surface, frame, mask, points, panel_size=(200, 150)):
+def draw_camera_panel(target_surface, frame, mask, points, panel_size=None):
     """
-    Gambar panel kecil di pojok kanan-bawah layar berisi:
-    - feed kamera (kecil)
+    Gambar panel preview kamera di pojok kanan-bawah layar berisi:
+    - feed kamera (ukuran diatur di config.CAMERA_PANEL_WIDTH/HEIGHT)
     - lintasan tangan yang sedang/baru saja digambar (garis kuning)
+
+    `points` ada dalam koordinat resolusi kerja tracking
+    (config.GESTURE_PROCESS_WIDTH x HEIGHT), jadi diskalakan ke ukuran panel.
     """
+    if panel_size is None:
+        panel_size = (config.CAMERA_PANEL_WIDTH, config.CAMERA_PANEL_HEIGHT)
     pw, ph = panel_size
-    x0 = target_surface.get_width() - pw - 16
-    y0 = target_surface.get_height() - ph - 16
+    margin = config.CAMERA_PANEL_MARGIN
+    x0 = target_surface.get_width() - pw - margin
+    y0 = target_surface.get_height() - ph - margin
 
     panel = pygame.Surface((pw, ph))
     if frame is not None:
@@ -35,9 +45,11 @@ def draw_camera_panel(target_surface, frame, mask, points, panel_size=(200, 150)
         panel.fill((25, 25, 30))
 
     if points and len(points) > 1:
-        fh, fw = frame.shape[:2] if frame is not None else (config.CAMERA_CAPTURE_HEIGHT, config.CAMERA_CAPTURE_WIDTH)
-        scaled = [(px * pw / fw, py * ph / fh) for (px, py) in points]
-        pygame.draw.lines(panel, (255, 230, 60), False, scaled, 3)
+        sx = pw / config.GESTURE_PROCESS_WIDTH
+        sy = ph / config.GESTURE_PROCESS_HEIGHT
+        scaled = [(px * sx, py * sy) for (px, py) in points]
+        pygame.draw.lines(panel, (255, 230, 60), False, scaled, 4)
 
     pygame.draw.rect(panel, (255, 255, 255), panel.get_rect(), width=2)
+    panel.set_alpha(config.CAMERA_PANEL_ALPHA)
     target_surface.blit(panel, (x0, y0))

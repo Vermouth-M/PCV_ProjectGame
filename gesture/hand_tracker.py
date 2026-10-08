@@ -92,11 +92,20 @@ class HandTracker:
         """
         Deteksi tangan pada satu frame BGR.
 
+        Frame boleh beresolusi besar (mis. 640x480 untuk preview); di sini
+        frame diperkecil dulu ke GESTURE_PROCESS_WIDTH x HEIGHT agar tracking
+        cepat dan semua threshold piksel di config tetap berlaku.
+
         Return: (centroid, mask, contour)
-          centroid : (x, y) posisi pusat tangan dalam koordinat frame, atau None
+          centroid : (x, y) posisi pusat tangan dalam koordinat RESOLUSI KERJA
+                     (GESTURE_PROCESS_WIDTH x HEIGHT), atau None
           mask     : citra biner hasil threshold (untuk ditampilkan/debug)
           contour  : kontur terbesar yang lolos filter area, atau None
         """
+        size = (config.GESTURE_PROCESS_WIDTH, config.GESTURE_PROCESS_HEIGHT)
+        if (frame.shape[1], frame.shape[0]) != size:
+            frame = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+
         blurred = cv2.GaussianBlur(frame, (7, 7), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(hsv, self.lower, self.upper)
