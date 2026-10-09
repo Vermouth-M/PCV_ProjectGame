@@ -96,8 +96,9 @@ CAMERA_PANEL_HEIGHT = 300
 CAMERA_PANEL_MARGIN = 16
 CAMERA_PANEL_ALPHA = 225      # 0-255, makin kecil makin transparan
 
-# mode deteksi tangan: "skin" (warna kulit) atau "marker" (benda berwarna cerah)
-GESTURE_DETECTION_MODE = "skin"
+# mode deteksi: "black" (benda/sarung tangan HITAM), "skin" (warna kulit),
+# atau "marker" (benda berwarna cerah, default hijau neon)
+GESTURE_DETECTION_MODE = "black"
 
 # Rentang HSV default untuk kulit (bisa dikalibrasi lewat tools/calibrate_hsv.py)
 SKIN_HSV_LOWER = (0, 30, 60)
@@ -106,6 +107,18 @@ SKIN_HSV_UPPER = (25, 150, 255)
 # Rentang HSV default untuk marker hijau terang (sarung tangan/benda hijau neon)
 MARKER_HSV_LOWER = (35, 80, 80)
 MARKER_HSV_UPPER = (85, 255, 255)
+
+# Rentang HSV untuk HITAM: hitam = kecerahan (V) rendah, hue & saturasi bebas.
+# Kalau hitam tidak terdeteksi (pencahayaan redup / kamera menganggapnya abu-abu
+# gelap) naikkan nilai V max (angka ketiga di UPPER), mis. 70 -> 90.
+# Kalau terlalu banyak benda gelap ikut terdeteksi, turunkan (mis. 70 -> 50).
+BLACK_HSV_LOWER = (0, 0, 0)
+BLACK_HSV_UPPER = (179, 255, 70)
+
+# Khusus mode hitam: abaikan gumpalan hitam yang lebih besar dari rasio ini
+# terhadap luas frame (menyaring baju hitam, rambut, bezel monitor, dsb).
+# Naikkan kalau objek hitam yang kamu pegang tampak besar di kamera.
+GESTURE_BLACK_MAX_AREA_RATIO = 0.30
 
 GESTURE_MIN_CONTOUR_AREA = 800     # kontur di bawah ini dianggap noise
 GESTURE_MIN_POINTS = 8             # minimal titik lintasan agar bisa diklasifikasi

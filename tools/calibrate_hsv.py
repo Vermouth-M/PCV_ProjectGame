@@ -4,6 +4,7 @@ tools/calibrate_hsv.py
 Alat bantu KALIBRASI warna kulit / marker memakai trackbar OpenCV.
 
 Cara pakai:
+    python tools/calibrate_hsv.py --mode black
     python tools/calibrate_hsv.py --mode skin
     python tools/calibrate_hsv.py --mode marker
 
@@ -31,7 +32,7 @@ def _nothing(_x):
 
 def main():
     parser = argparse.ArgumentParser(description="Kalibrasi rentang HSV untuk deteksi tangan/marker.")
-    parser.add_argument("--mode", choices=["skin", "marker"], default="skin")
+    parser.add_argument("--mode", choices=["black", "skin", "marker"], default="black")
     parser.add_argument("--camera", type=int, default=config.CAMERA_INDEX)
     args = parser.parse_args()
 
@@ -40,8 +41,12 @@ def main():
         print(f"Tidak bisa membuka kamera index {args.camera}.")
         return
 
-    default_lower = config.SKIN_HSV_LOWER if args.mode == "skin" else config.MARKER_HSV_LOWER
-    default_upper = config.SKIN_HSV_UPPER if args.mode == "skin" else config.MARKER_HSV_UPPER
+    defaults = {
+        "black": (config.BLACK_HSV_LOWER, config.BLACK_HSV_UPPER),
+        "skin": (config.SKIN_HSV_LOWER, config.SKIN_HSV_UPPER),
+        "marker": (config.MARKER_HSV_LOWER, config.MARKER_HSV_UPPER),
+    }
+    default_lower, default_upper = defaults[args.mode]
 
     win = f"Kalibrasi HSV - {args.mode}"
     cv2.namedWindow(win)

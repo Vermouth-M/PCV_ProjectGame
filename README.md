@@ -24,8 +24,9 @@ udara menggunakan tangan, dideteksi lewat kamera **hanya dengan OpenCV**
 
 - Deteksi tangan berbasis **color thresholding (HSV) + kontur**, jadi
   ringan, tidak butuh GPU/model besar, dan 100% memakai OpenCV biasa.
-  Ada mode `skin` (warna kulit) dan `marker` (benda/sarung tangan
-  berwarna cerah), plus alat kalibrasi HSV interaktif.
+  Ada mode `black` (benda/sarung tangan hitam, **default**), `skin`
+  (warna kulit), dan `marker` (benda berwarna cerah), plus alat
+  kalibrasi HSV interaktif.
 - Kode dipecah per modul dengan tanggung jawab jelas (lihat struktur di
   bawah) — bukan 1 file raksasa.
 - Fallback tombol `1`-`5` untuk memicu jurus tanpa kamera (berguna untuk
@@ -136,6 +137,33 @@ Ini adalah heuristik geometri, bukan model yang dilatih dari data. Cukup
 akurat untuk gerakan yang jelas dan tidak terburu-buru, tapi bisa saja
 salah baca kalau pencahayaan buruk, latar belakang mirip warna kulit,
 atau gerakannya terlalu kecil/cepat.
+
+### Mode tracking hitam (default)
+
+Game melacak **benda berwarna hitam** yang kamu gerakkan di depan kamera
+(sarung tangan hitam, kertas/karton hitam, tutup spidol hitam, dsb).
+Pengaturannya di `config.py`:
+
+- `GESTURE_DETECTION_MODE = "black"` (ganti ke `"skin"` atau `"marker"`
+  untuk mode lain).
+- `BLACK_HSV_UPPER = (179, 255, 70)` -- angka terakhir (V max) adalah
+  batas "seberapa gelap dianggap hitam". Naikkan (mis. 90) kalau
+  objekmu tidak terdeteksi karena ruangan redup; turunkan (mis. 50)
+  kalau benda gelap lain ikut terdeteksi.
+- `GESTURE_BLACK_MAX_AREA_RATIO = 0.30` -- gumpalan hitam yang lebih
+  besar dari 30% luas frame diabaikan (menyaring baju hitam, layar
+  monitor, dsb). Naikkan kalau objek hitammu tampak besar di kamera.
+
+Karena hitam juga umum di sekitar kita, supaya akurat:
+
+- Pakai **latar belakang terang** (dinding putih/krem) dan hindari
+  baju, rambut, atau monitor hitam yang masuk ke dalam frame.
+- Pegang objek hitam **satu saja**; yang dilacak adalah gumpalan hitam
+  terbesar yang lolos filter ukuran.
+- Pencahayaan cukup & merata; bayangan gelap juga bisa terbaca hitam.
+- Jalankan `python tools/calibrate_hsv.py --mode black`, geser trackbar
+  sampai jendela "mask" hanya menampilkan objek hitammu (putih bersih,
+  sisanya hitam), lalu tekan `s` untuk menyimpan.
 
 ### Tips supaya deteksi lebih akurat
 

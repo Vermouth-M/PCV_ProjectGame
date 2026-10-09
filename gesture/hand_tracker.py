@@ -9,10 +9,10 @@ pencarian kontur terbesar. Ini bukan hand-pose estimation yang canggih,
 tapi cukup untuk melacak *satu titik pusat tangan* (centroid) yang
 dipakai untuk "menggambar" pola jurus di udara.
 
-Dua mode:
-- "skin"   : mendeteksi warna kulit (default, tidak butuh alat tambahan)
-- "marker" : mendeteksi benda/sarung tangan berwarna cerah (lebih stabil
-             di pencahayaan yang sulit)
+Tiga mode (config.GESTURE_DETECTION_MODE):
+- "black"  : mendeteksi benda/sarung tangan HITAM (default)
+- "skin"   : mendeteksi warna kulit
+- "marker" : mendeteksi benda/sarung tangan berwarna cerah (hijau neon)
 
 Kalibrasi bisa dilakukan lewat tools/calibrate_hsv.py; hasilnya disimpan
 ke hsv_calibration.json dan otomatis dipakai kalau file itu ada.
@@ -39,9 +39,15 @@ class HandTracker:
 
     # ------------------------------------------------------------------
     def _load_hsv_range(self):
-        lower, upper = config.SKIN_HSV_LOWER, config.SKIN_HSV_UPPER
-        if self.mode == "marker":
-            lower, upper = config.MARKER_HSV_LOWER, config.MARKER_HSV_UPPER
+        ranges = {
+            "skin": (config.SKIN_HSV_LOWER, config.SKIN_HSV_UPPER),
+            "marker": (config.MARKER_HSV_LOWER, config.MARKER_HSV_UPPER),
+            "black": (config.BLACK_HSV_LOWER, config.BLACK_HSV_UPPER),
+        }
+        if self.mode not in ranges:
+            raise ValueError(
+                f"GESTURE_DETECTION_MODE '{self.mode}' tidak dikenal, pilih: {list(ranges)}")
+        lower, upper = ranges[self.mode]
 
         if os.path.exists(config.HSV_CALIBRATION_FILE):
             try:
@@ -117,9 +123,23 @@ class HandTracker:
         if not contours:
             return None, mask, None
 
-        largest = max(contours, key=cv2.contourArea)
-        if cv2.contourArea(largest) < config.GESTURE_MIN_CONTOUR_AREA:
+        # Mode hitam: buang gumpalan yang terlalu besar (baju/rambut/monitor)
+        max_area = None
+        if self.mode == "black":
+            max_area = config.GESTURE_BLACK_MAX_AREA_RATIO * frame.shape[0] * frame.shape[1]
+
+        valid = []
+        for c in contours:
+            area = cv2.contourArea(c)
+            if area < config.GESTURE_MIN_CONTOUR_AREA:
+                continue
+            if max_area is not None and area > max_area:
+                continue
+            valid.append((area, c))
+        if not valid:
             return None, mask, None
+
+        largest = max(valid, key=lambda item: item[0])[1]
 
         moments = cv2.moments(largest)
         if moments["m00"] == 0:
