@@ -5,7 +5,6 @@ Semua konstanta dan pengaturan game dikumpulkan di sini supaya mudah
 di-tweak tanpa perlu mengubah logika di file lain.
 """
 
-import os
 
 # ---------------------------------------------------------------------------
 # Layar & Umum
@@ -96,29 +95,40 @@ CAMERA_PANEL_HEIGHT = 300
 CAMERA_PANEL_MARGIN = 16
 CAMERA_PANEL_ALPHA = 225      # 0-255, makin kecil makin transparan
 
-# mode deteksi: "black" (benda/sarung tangan HITAM), "skin" (warna kulit),
-# atau "marker" (benda berwarna cerah, default hijau neon)
-GESTURE_DETECTION_MODE = "black"
+# ---------------------------------------------------------------------------
+# Tracking SARUNG TANGAN HITAM (OpenCV murni; game ini HANYA melacak warna)
+# ---------------------------------------------------------------------------
+# --- Ambang "hitam" yang menyesuaikan pencahayaan secara otomatis ------------
+# level = persentil ke-75 kanal V (kecerahan) frame, skala 0-255, dihaluskan.
+# v_max = BLACK_V_RATIO * level + BLACK_V_OFFSET, lalu dibatasi MIN..MAX.
+# Ruangan terang -> ambang naik; ruangan redup -> ambang turun. Otomatis.
+BLACK_V_RATIO = 0.38
+BLACK_V_OFFSET = 12
+BLACK_V_MIN = 28
+BLACK_V_MAX = 95
+BLACK_V_MAX_OVERRIDE = None   # isi angka (mis. 60) untuk MEMATIKAN mode otomatis
+BLACK_S_MAX = 255             # saturasi maksimum (255 = bebas)
+LIGHT_SMOOTHING = 0.15        # 0-1: makin kecil makin halus tapi lambat menyesuaikan
 
-# Rentang HSV default untuk kulit (bisa dikalibrasi lewat tools/calibrate_hsv.py)
-SKIN_HSV_LOWER = (0, 30, 60)
-SKIN_HSV_UPPER = (25, 150, 255)
+# Batas label pada bar pencahayaan (satuan level 0-255)
+LIGHT_LEVEL_TOO_DARK = 40
+LIGHT_LEVEL_DIM = 80
+LIGHT_LEVEL_BRIGHT = 200
+LIGHT_LEVEL_OVEREXPOSED = 232
 
-# Rentang HSV default untuk marker hijau terang (sarung tangan/benda hijau neon)
-MARKER_HSV_LOWER = (35, 80, 80)
-MARKER_HSV_UPPER = (85, 255, 255)
+# --- Membedakan sarung tangan dari rambut & benda hitam yang diam ------------
+GESTURE_AUTO_CALIBRATE_ON_START = True   # kalibrasi otomatis saat game dibuka
+GESTURE_CALIB_FRAMES = 45            # jumlah frame yang dipelajari (~1.5 detik)
+GESTURE_CALIB_TIMEOUT = 8.0          # detik; selesai/batal paksa kalau kamera macet
+GESTURE_WARMUP_FRAMES = 20           # frame awal diabaikan (auto-exposure webcam)
+GESTURE_CALIB_PERSISTENCE = 0.7      # piksel hitam di >=70% frame dianggap "diam"
+GESTURE_EXCLUSION_DILATE = 12        # px pelebaran zona diabaikan (toleransi kepala goyang)
 
-# Rentang HSV untuk HITAM: hitam = kecerahan (V) rendah, hue & saturasi bebas.
-# Kalau hitam tidak terdeteksi (pencahayaan redup / kamera menganggapnya abu-abu
-# gelap) naikkan nilai V max (angka ketiga di UPPER), mis. 70 -> 90.
-# Kalau terlalu banyak benda gelap ikut terdeteksi, turunkan (mis. 70 -> 50).
-BLACK_HSV_LOWER = (0, 0, 0)
-BLACK_HSV_UPPER = (179, 255, 70)
-
-# Khusus mode hitam: abaikan gumpalan hitam yang lebih besar dari rasio ini
-# terhadap luas frame (menyaring baju hitam, rambut, bezel monitor, dsb).
-# Naikkan kalau objek hitam yang kamu pegang tampak besar di kamera.
-GESTURE_BLACK_MAX_AREA_RATIO = 0.30
+# --- Filter gumpalan hitam (kandidat sarung tangan) ---------------------------
+GESTURE_BLACK_MAX_AREA_RATIO = 0.25  # abaikan gumpalan > 25% luas frame
+GESTURE_MIN_SOLIDITY = 0.55          # kepadatan bentuk (luas / luas convex hull)
+GESTURE_TRACK_CONTINUITY_SECONDS = 0.5
+GESTURE_TRACK_CONTINUITY_MIN_AREA = 0.4
 
 GESTURE_MIN_CONTOUR_AREA = 800     # kontur di bawah ini dianggap noise
 GESTURE_MIN_POINTS = 8             # minimal titik lintasan agar bisa diklasifikasi
@@ -131,8 +141,6 @@ GESTURE_APPROX_EPSILON_RATIO = 0.03
 
 GESTURE_TIME_SCALE_WHILE_DRAWING = 0.35   # slow-mo musuh saat menggambar jurus (mode fokus)
 
-# File hasil kalibrasi HSV dari tools/calibrate_hsv.py (opsional, auto-load kalau ada)
-HSV_CALIBRATION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "hsv_calibration.json")
 
 # ---------------------------------------------------------------------------
 # Skill / Jurus

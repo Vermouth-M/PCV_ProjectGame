@@ -1,64 +1,46 @@
 """
 gesture/hand_tracker.py
 ========================
-Deteksi posisi tangan menggunakan OpenCV MURNI (TIDAK memakai mediapipe
-atau model machine-learning apapun).
+Melacak SARUNG TANGAN HITAM memakai OpenCV murni (tanpa mediapipe, tanpa
+machine learning). Game ini HANYA melacak warna: gumpalan hitam terbesar yang
+lolos beberapa filter. Tiga masalah praktis dan solusinya:
 
-Teknik yang dipakai: color thresholding (HSV) + operasi morfologi +
-pencarian kontur terbesar. Ini bukan hand-pose estimation yang canggih,
-tapi cukup untuk melacak *satu titik pusat tangan* (centroid) yang
-dipakai untuk "menggambar" pola jurus di udara.
-
-Tiga mode (config.GESTURE_DETECTION_MODE):
-- "black"  : mendeteksi benda/sarung tangan HITAM (default)
-- "skin"   : mendeteksi warna kulit
-- "marker" : mendeteksi benda/sarung tangan berwarna cerah (hijau neon)
-
-Kalibrasi bisa dilakukan lewat tools/calibrate_hsv.py; hasilnya disimpan
-ke hsv_calibration.json dan otomatis dipakai kalau file itu ada.
+1. Pencahayaan beda tiap ruangan
+   -> ambang "hitam" dihitung otomatis dari kecerahan scene
+      (gesture/lighting.py), bukan angka tetap.
+2. Rambut juga hitam
+   -> area hitam yang DIAM saat kalibrasi dipelajari lalu diabaikan
+      (gesture/background_filter.py). Sarung tangan yang bergerak tidak ikut.
+3. Gumpalan hitam lain yang kebetulan lolos
+   -> disaring lewat ukuran, kepadatan bentuk (solidity), dan kontinuitas
+      posisi dari frame sebelumnya.
 """
 
-import json
-import os
+import time
 
 import cv2
 import numpy as np
 
 import config
+from gesture.background_filter import StaticDarkFilter
+from gesture.lighting import LightingMonitor
+
+_BLACK_LOWER = np.array([0, 0, 0], dtype=np.uint8)
 
 
 class HandTracker:
-    def __init__(self, camera_index=None, mode=None):
+    def __init__(self, camera_index=None):
         self.camera_index = camera_index if camera_index is not None else config.CAMERA_INDEX
-        self.mode = mode or config.GESTURE_DETECTION_MODE
         self.cap = None
         self.available = False
 
-        self.lower, self.upper = self._load_hsv_range()
+        self.lighting = LightingMonitor()
+        self.background = StaticDarkFilter()
+
         self._kernel = np.ones((5, 5), np.uint8)
-
-    # ------------------------------------------------------------------
-    def _load_hsv_range(self):
-        ranges = {
-            "skin": (config.SKIN_HSV_LOWER, config.SKIN_HSV_UPPER),
-            "marker": (config.MARKER_HSV_LOWER, config.MARKER_HSV_UPPER),
-            "black": (config.BLACK_HSV_LOWER, config.BLACK_HSV_UPPER),
-        }
-        if self.mode not in ranges:
-            raise ValueError(
-                f"GESTURE_DETECTION_MODE '{self.mode}' tidak dikenal, pilih: {list(ranges)}")
-        lower, upper = ranges[self.mode]
-
-        if os.path.exists(config.HSV_CALIBRATION_FILE):
-            try:
-                with open(config.HSV_CALIBRATION_FILE, "r") as f:
-                    data = json.load(f)
-                if data.get("mode") == self.mode:
-                    lower = tuple(data["lower"])
-                    upper = tuple(data["upper"])
-            except (json.JSONDecodeError, KeyError, OSError):
-                pass
-        return np.array(lower, dtype=np.uint8), np.array(upper, dtype=np.uint8)
+        self._frames_seen = 0
+        self._last_centroid = None
+        self._last_time = 0.0
 
     # ------------------------------------------------------------------
     def open(self):
@@ -81,7 +63,6 @@ class HandTracker:
             self.cap.release()
         self.available = False
 
-    # ------------------------------------------------------------------
     def read_frame(self):
         """Ambil satu frame mentah (BGR) dari kamera, atau None kalau gagal."""
         if not self.available or self.cap is None:
@@ -96,55 +77,95 @@ class HandTracker:
     # ------------------------------------------------------------------
     def detect(self, frame):
         """
-        Deteksi tangan pada satu frame BGR.
-
-        Frame boleh beresolusi besar (mis. 640x480 untuk preview); di sini
-        frame diperkecil dulu ke GESTURE_PROCESS_WIDTH x HEIGHT agar tracking
-        cepat dan semua threshold piksel di config tetap berlaku.
+        Deteksi sarung tangan hitam pada satu frame BGR (resolusi bebas; di sini
+        diperkecil ke GESTURE_PROCESS_WIDTH x HEIGHT).
 
         Return: (centroid, mask, contour)
-          centroid : (x, y) posisi pusat tangan dalam koordinat RESOLUSI KERJA
-                     (GESTURE_PROCESS_WIDTH x HEIGHT), atau None
-          mask     : citra biner hasil threshold (untuk ditampilkan/debug)
-          contour  : kontur terbesar yang lolos filter area, atau None
+          centroid : (x, y) dalam koordinat RESOLUSI KERJA, atau None
+          mask     : mask hitam akhir (setelah zona rambut dibuang) untuk debug/preview
+          contour  : kontur sarung tangan terpilih, atau None
         """
         size = (config.GESTURE_PROCESS_WIDTH, config.GESTURE_PROCESS_HEIGHT)
         if (frame.shape[1], frame.shape[0]) != size:
             frame = cv2.resize(frame, size, interpolation=cv2.INTER_AREA)
+        self._frames_seen += 1
 
         blurred = cv2.GaussianBlur(frame, (7, 7), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(hsv, self.lower, self.upper)
 
+        # 1) kompensasi pencahayaan: ambang hitam menyesuaikan kecerahan ruangan
+        light = self.lighting.update(hsv[:, :, 2])
+        upper = np.array([179, config.BLACK_S_MAX, light.black_v_max], dtype=np.uint8)
+
+        mask = cv2.inRange(hsv, _BLACK_LOWER, upper)
         mask = cv2.erode(mask, self._kernel, iterations=1)
         mask = cv2.dilate(mask, self._kernel, iterations=2)
 
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
+        # 2) kalibrasi: pelajari area hitam yang diam (rambut dkk), belum melacak
+        if self.background.calibrating:
+            if self._frames_seen > config.GESTURE_WARMUP_FRAMES:
+                self.background.feed(mask)
             return None, mask, None
 
-        # Mode hitam: buang gumpalan yang terlalu besar (baju/rambut/monitor)
-        max_area = None
-        if self.mode == "black":
-            max_area = config.GESTURE_BLACK_MAX_AREA_RATIO * frame.shape[0] * frame.shape[1]
+        exclusion = self.background.exclusion
+        if exclusion is not None:
+            mask = cv2.bitwise_and(mask, cv2.bitwise_not(exclusion))
 
-        valid = []
+        # 3) pilih kandidat sarung tangan dari gumpalan hitam yang tersisa
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        candidates = self._filter_candidates(contours, mask.shape)
+        if not candidates:
+            return None, mask, None
+
+        contour = self._choose(candidates)
+        centroid = self._centroid(contour)
+        if centroid is None:
+            return None, mask, contour
+
+        self._last_centroid = centroid
+        self._last_time = time.time()
+        return centroid, mask, contour
+
+    # ------------------------------------------------------------------
+    def _filter_candidates(self, contours, shape):
+        max_area = config.GESTURE_BLACK_MAX_AREA_RATIO * shape[0] * shape[1]
+        candidates = []
         for c in contours:
             area = cv2.contourArea(c)
-            if area < config.GESTURE_MIN_CONTOUR_AREA:
+            if area < config.GESTURE_MIN_CONTOUR_AREA or area > max_area:
                 continue
-            if max_area is not None and area > max_area:
-                continue
-            valid.append((area, c))
-        if not valid:
-            return None, mask, None
+            hull_area = cv2.contourArea(cv2.convexHull(c))
+            if hull_area <= 0 or (area / hull_area) < config.GESTURE_MIN_SOLIDITY:
+                continue   # bentuk bergerigi/tipis (mis. tepi rambut), bukan sarung tangan
+            candidates.append((area, c))
+        return candidates
 
-        largest = max(valid, key=lambda item: item[0])[1]
+    def _choose(self, candidates):
+        """Pilih gumpalan terbesar, kecuali ada kandidat sepadan yang dekat posisi terakhir."""
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        best_area, best = candidates[0]
 
-        moments = cv2.moments(largest)
-        if moments["m00"] == 0:
-            return None, mask, largest
+        recent = (self._last_centroid is not None and
+                  time.time() - self._last_time <= config.GESTURE_TRACK_CONTINUITY_SECONDS)
+        if recent and len(candidates) > 1:
+            min_area = best_area * config.GESTURE_TRACK_CONTINUITY_MIN_AREA
+            lx, ly = self._last_centroid
+            nearest, nearest_dist = best, None
+            for area, c in candidates:
+                if area < min_area:
+                    continue
+                cen = self._centroid(c)
+                if cen is None:
+                    continue
+                dist = (cen[0] - lx) ** 2 + (cen[1] - ly) ** 2
+                if nearest_dist is None or dist < nearest_dist:
+                    nearest, nearest_dist = c, dist
+            return nearest
+        return best
 
-        cx = int(moments["m10"] / moments["m00"])
-        cy = int(moments["m01"] / moments["m00"])
-        return (cx, cy), mask, largest
+    @staticmethod
+    def _centroid(contour):
+        m = cv2.moments(contour)
+        if m["m00"] == 0:
+            return None
+        return (int(m["m10"] / m["m00"]), int(m["m01"] / m["m00"]))

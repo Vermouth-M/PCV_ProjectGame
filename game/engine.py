@@ -43,6 +43,9 @@ class Game:
 
         self.gesture_thread = GestureThread()
         self.camera_available = self.gesture_thread.start()
+        self.show_mask = False   # tombol M: tampilkan mask hitam di panel kamera
+        if self.camera_available and config.GESTURE_AUTO_CALIBRATE_ON_START:
+            self.gesture_thread.start_calibration()
 
         self.space_held = False
         self._debug_shape_keys = {
@@ -79,9 +82,16 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     return False
 
-                if event.key == pygame.K_SPACE and self.state == "playing":
+                if (event.key == pygame.K_SPACE and self.state == "playing"
+                        and not self.gesture_thread.is_calibrating()):
                     self.space_held = True
                     self.gesture_thread.begin_recording()
+
+                if event.key == pygame.K_c and self.state == "playing" and not self.space_held:
+                    self.gesture_thread.start_calibration()
+
+                if event.key == pygame.K_m:
+                    self.show_mask = not self.show_mask
 
                 if event.key == pygame.K_r and self.state == "gameover":
                     self._restart()
@@ -105,15 +115,22 @@ class Game:
 
     # ------------------------------------------------------------------
     def _update(self, dt):
-        self.elapsed += dt
+        calibrating = self.gesture_thread.is_calibrating()
+        if not calibrating:
+            self.elapsed += dt
 
         # auto-stop kalau merekam gestur kelamaan
         if self.gesture_thread.recording_expired():
             self.space_held = False
             self._finish_gesture()
 
-        # mode fokus: musuh melambat selagi pemain sedang menggambar jurus
-        time_scale = config.GESTURE_TIME_SCALE_WHILE_DRAWING if self.gesture_thread.is_recording() else 1.0
+        # dunia membeku selama kalibrasi; musuh melambat selagi pemain menggambar jurus
+        if calibrating:
+            time_scale = 0.0
+        elif self.gesture_thread.is_recording():
+            time_scale = config.GESTURE_TIME_SCALE_WHILE_DRAWING
+        else:
+            time_scale = 1.0
         world_dt = dt * time_scale
 
         keys = pygame.key.get_pressed()
@@ -220,12 +237,24 @@ class Game:
 
         self.player.draw(self.screen, cam_x, cam_y)
 
-        self.ui.draw_hud(self.screen, self.player, self.elapsed, self.skills,
-                          self.gesture_thread.is_recording(), self.camera_available)
-
-        frame, mask, _centroid = self.gesture_thread.get_preview()
+        frame, mask, centroid = self.gesture_thread.get_preview()
         points = self.gesture_thread.current_points()
-        camera_overlay.draw_camera_panel(self.screen, frame, mask, points)
+        calibrating = self.gesture_thread.is_calibrating()
+
+        self.ui.draw_hud(self.screen, self.player, self.elapsed, self.skills,
+                          self.gesture_thread.is_recording(), self.camera_available,
+                          glove_visible=centroid is not None)
+
+        camera_overlay.draw_camera_panel(
+            self.screen, frame, mask, points, centroid=centroid,
+            exclusion=self.gesture_thread.get_exclusion(), show_mask=self.show_mask)
+
+        if self.camera_available:
+            self.ui.draw_lighting_bar(
+                self.screen, camera_overlay.get_panel_rect(self.screen),
+                self.gesture_thread.get_lighting(), self.gesture_thread.exclusion_ratio(), calibrating)
+            if calibrating:
+                self.ui.draw_calibration_banner(self.screen, self.gesture_thread.calibration_progress())
 
         if self.state == "gameover":
             mins, secs = divmod(int(self.elapsed), 60)
