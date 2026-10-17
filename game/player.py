@@ -1,9 +1,11 @@
-"""game/player.py -- entitas pemain: gerakan WASD, HP, XP, leveling, perisai."""
+"""game/player.py -- entitas pemain: gerakan WASD, HP, XP, leveling, perisai, sprite."""
 
 import math
 import pygame
 
 import config
+from game import assets
+from game.animation import Animation
 
 
 class Player:
@@ -26,6 +28,16 @@ class Player:
 
         self.attack_cooldown_timer = 0.0
         self.kills = 0
+
+        # tampilan sprite (kosong kalau aset tidak ada -> vektor)
+        self.moving = False
+        self.face_left = False     # sisi horizontal terakhir, untuk flip sprite
+        size = int(self.radius * 2 * config.SPRITE_SCALE["player"])
+        manager = assets.get()
+        self.anim_idle = Animation(manager.frames("sprites/player/idle", size=size),
+                                   config.ANIM_FPS["player_idle"])
+        self.anim_walk = Animation(manager.frames("sprites/player/walk", size=size),
+                                   config.ANIM_FPS["player_walk"])
 
     # ------------------------------------------------------------------
     @property
@@ -52,10 +64,13 @@ class Player:
         if keys[pygame.K_s]:
             dy += 1
 
-        if dx != 0 or dy != 0:
+        self.moving = dx != 0 or dy != 0
+        if self.moving:
             length = math.hypot(dx, dy)
             dx, dy = dx / length, dy / length
             self.facing = (dx, dy)
+            if dx != 0:
+                self.face_left = dx < 0
             self.x += dx * self.speed * dt
             self.y += dy * self.speed * dt
 
@@ -67,6 +82,11 @@ class Player:
             self.shield_timer = max(0.0, self.shield_timer - dt)
         if self.attack_cooldown_timer > 0:
             self.attack_cooldown_timer = max(0.0, self.attack_cooldown_timer - dt)
+
+        if self.moving:
+            self.anim_walk.update(dt)
+        else:
+            self.anim_idle.update(dt)
 
     # ------------------------------------------------------------------
     def take_damage(self, amount):
@@ -95,22 +115,42 @@ class Player:
         return self.hp > 0
 
     # ------------------------------------------------------------------
+    def _current_frame(self):
+        if self.moving and self.anim_walk:
+            return self.anim_walk.frame
+        if self.anim_idle:
+            return self.anim_idle.frame
+        if self.anim_walk:                 # tidak ada idle: pakai frame pertama jalan
+            return self.anim_walk.frames[0]
+        return None
+
     def draw(self, surface, cam_x, cam_y):
         sx, sy = int(self.x - cam_x), int(self.y - cam_y)
+        blink = self.invuln_timer > 0 and int(self.invuln_timer * 20) % 2 == 0
 
-        color = config.COLOR_PLAYER
-        if self.invuln_timer > 0 and int(self.invuln_timer * 20) % 2 == 0:
-            color = config.COLOR_PLAYER_HIT
-
-        pygame.draw.circle(surface, color, (sx, sy), self.radius)
-
-        # indikator arah hadap
-        tip = (sx + self.facing[0] * (self.radius + 8), sy + self.facing[1] * (self.radius + 8))
-        pygame.draw.line(surface, (255, 255, 255), (sx, sy), tip, 3)
+        frame = self._current_frame()
+        if frame is not None:
+            manager = assets.get()
+            img = manager.flipped(frame) if self.face_left else frame
+            if blink:
+                img = manager.tinted(img, (160, 30, 30))
+            surface.blit(img, img.get_rect(center=(sx, sy)))
+        else:
+            color = config.COLOR_PLAYER_HIT if blink else config.COLOR_PLAYER
+            pygame.draw.circle(surface, color, (sx, sy), self.radius)
+            tip = (sx + self.facing[0] * (self.radius + 8), sy + self.facing[1] * (self.radius + 8))
+            pygame.draw.line(surface, (255, 255, 255), (sx, sy), tip, 3)
 
         if self.is_shielded:
-            pulse = 4 * math.sin(pygame.time.get_ticks() / 120.0)
-            half = self.radius + 14 + pulse
+            self._draw_shield(surface, sx, sy)
+
+    def _draw_shield(self, surface, sx, sy):
+        pulse = 4 * math.sin(pygame.time.get_ticks() / 120.0)
+        half = self.radius + 14 + pulse
+        sprite = assets.get().image("effects/shield", size=int(half * 2))
+        if sprite is not None:
+            surface.blit(sprite, sprite.get_rect(center=(sx, sy)))
+        else:
             rect = pygame.Rect(0, 0, half * 2, half * 2)
             rect.center = (sx, sy)
             pygame.draw.rect(surface, config.COLOR_SHIELD, rect, width=3, border_radius=6)

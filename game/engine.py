@@ -16,7 +16,7 @@ from game.projectile import Projectile
 from game.skills import SkillManager
 from game.ui import UI
 from game.utils import circle_collide, distance
-from game import camera_overlay
+from game import assets, background, camera_overlay
 
 from gesture.gesture_thread import GestureThread
 from gesture import shape_classifier
@@ -28,6 +28,9 @@ class Game:
         self.screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         pygame.display.set_caption(config.GAME_TITLE)
         self.clock = pygame.time.Clock()
+
+        assets.init()   # sprite/efek/latar dari folder assets/ (kosong = gambar vektor)
+        print(assets.get().summary())
 
         self.player = Player(0, 0)
         self.spawner = Spawner()
@@ -224,7 +227,7 @@ class Game:
         cam_x = self.player.x - config.SCREEN_WIDTH / 2
         cam_y = self.player.y - config.SCREEN_HEIGHT / 2
 
-        self._draw_grid(cam_x, cam_y)
+        background.draw_background(self.screen, cam_x, cam_y)
 
         for orb in self.orbs:
             orb.draw(self.screen, cam_x, cam_y)
@@ -261,12 +264,3 @@ class Game:
             self.ui.draw_center_message(
                 self.screen, "GAME OVER",
                 f"Bertahan {mins:02d}:{secs:02d} - {self.player.kills} kill.  Tekan R untuk main lagi.")
-
-    def _draw_grid(self, cam_x, cam_y):
-        spacing = 64
-        start_x = -int(cam_x) % spacing
-        start_y = -int(cam_y) % spacing
-        for x in range(start_x, config.SCREEN_WIDTH, spacing):
-            pygame.draw.line(self.screen, config.COLOR_GRID, (x, 0), (x, config.SCREEN_HEIGHT))
-        for y in range(start_y, config.SCREEN_HEIGHT, spacing):
-            pygame.draw.line(self.screen, config.COLOR_GRID, (0, y), (config.SCREEN_WIDTH, y))

@@ -3,6 +3,7 @@
 import pygame
 
 import config
+from game import assets
 
 
 class UI:
@@ -43,15 +44,24 @@ class UI:
         self._draw_gesture_status(surface, recording, camera_available, skill_manager, glove_visible)
 
     def _draw_skill_list(self, surface, skill_manager):
+        manager = assets.get()
         x, y = 20, surface.get_height() - 150
         for shape, cfg in config.SKILL_DEFS.items():
             ratio = skill_manager.cooldown_ratio(shape)
             ready = skill_manager.is_ready(shape)
             color = cfg["color"] if ready else config.COLOR_TEXT_DIM
+
+            # ikon jurus (assets/ui/skill_<bentuk>.png) bila ada; redup saat cooldown
+            icon = manager.image(f"ui/skill_{shape}", size=config.SKILL_ICON_SIZE)
+            text_x = x
+            if icon is not None:
+                surface.blit(icon if ready else manager.dimmed(icon), (x, y - 3))
+                text_x = x + config.SKILL_ICON_SIZE + 6
+
             label = f"[{shape.upper():<8}] {cfg['name']}"
             text = self.font_small.render(label, True, color)
-            surface.blit(text, (x, y))
-            self.draw_bar(surface, x + 372, y + 2, 80, 10, ratio, (40, 40, 40), color)
+            surface.blit(text, (text_x, y))
+            self.draw_bar(surface, x + 410, y + 2, 80, 10, ratio, (40, 40, 40), color)
             y += 22
 
     def _draw_gesture_status(self, surface, recording, camera_available, skill_manager,

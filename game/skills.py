@@ -13,23 +13,31 @@ di depan kamera:
 SkillManager menyimpan cooldown tiap jurus dan menghasilkan objek
 "SkillEffect" yang dianimasikan sebentar sambil langsung mengecek
 tabrakan dengan musuh saat dibuat.
+
+Tampilan efek: memakai sprite dari assets/effects/ kalau ada (diregangkan &
+diputar SEKALI saat efek dibuat, lalu hanya alpha yang berubah per frame);
+kalau tidak ada, memakai gambar vektor.
 """
 
 import math
 import pygame
 
 import config
+from game import assets
+from game.assets import AssetManager
 from game.utils import distance
 
 
 class SkillEffect:
-    """Efek visual sesaat (cone, ring, garis, dsb) -- damage sudah diterapkan saat dibuat."""
+    """Efek visual sesaat -- damage sudah diterapkan saat efek dibuat."""
 
     def __init__(self, kind, duration, color):
         self.kind = kind
         self.age = 0.0
         self.duration = duration
         self.color = color
+        self._sprite = None          # surface hasil regang+putar (milik efek ini sendiri)
+        self._center = (0.0, 0.0)    # pusat sprite di koordinat dunia
 
     def update(self, dt):
         self.age += dt
@@ -40,6 +48,20 @@ class SkillEffect:
     def progress(self):
         return min(1.0, self.age / self.duration) if self.duration > 0 else 1.0
 
+    # --- bantuan sprite arah ("pangkal di kiri-tengah, ujung ke kanan") ---
+    def _use_directional(self, prefix, origin, length, thickness, angle_rad):
+        result = assets.get().directional((prefix,), length, thickness, angle_rad)
+        if result is None:
+            return False
+        self._sprite, offset = result
+        self._center = (origin[0] + offset[0], origin[1] + offset[1])
+        return True
+
+    def _draw_sprite(self, surface, cam_x, cam_y):
+        self._sprite.set_alpha(int(255 * max(0.0, 1 - self.progress())))
+        rect = self._sprite.get_rect(center=(self._center[0] - cam_x, self._center[1] - cam_y))
+        surface.blit(self._sprite, rect)
+
 
 class TriangleSlash(SkillEffect):
     def __init__(self, player_pos, facing, radius, angle_deg, color):
@@ -48,6 +70,10 @@ class TriangleSlash(SkillEffect):
         self.facing = facing
         self.radius = radius
         self.half_angle = math.radians(angle_deg / 2)
+
+        chord = 2 * radius * math.sin(self.half_angle)   # lebar sisi luar segitiga
+        self._use_directional("effects/triangle_slash", player_pos, radius, chord,
+                              math.atan2(facing[1], facing[0]))
 
     def hits(self, enemy_pos):
         dx, dy = enemy_pos[0] - self.origin[0], enemy_pos[1] - self.origin[1]
@@ -60,6 +86,9 @@ class TriangleSlash(SkillEffect):
         return diff <= self.half_angle
 
     def draw(self, surface, cam_x, cam_y):
+        if self._sprite is not None:
+            self._draw_sprite(surface, cam_x, cam_y)
+            return
         ox, oy = self.origin[0] - cam_x, self.origin[1] - cam_y
         facing_angle = math.atan2(self.facing[1], self.facing[0])
         fade = max(0, 1 - self.progress())
@@ -69,8 +98,7 @@ class TriangleSlash(SkillEffect):
         p3 = (ox + math.cos(facing_angle + self.half_angle) * self.radius,
               oy + math.sin(facing_angle + self.half_angle) * self.radius)
         surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        alpha = int(160 * fade)
-        pygame.draw.polygon(surf, (*self.color, alpha), [p1, p2, p3])
+        pygame.draw.polygon(surf, (*self.color, int(160 * fade)), [p1, p2, p3])
         surface.blit(surf, (0, 0))
 
 
@@ -80,12 +108,21 @@ class CircleShockwave(SkillEffect):
         self.origin = player_pos
         self.radius = radius
         self.knockback = knockback
+        self._base = assets.get().image("effects/circle_shockwave")
 
     def hits(self, enemy_pos):
         return distance(self.origin, enemy_pos) <= self.radius
 
     def draw(self, surface, cam_x, cam_y):
         ox, oy = int(self.origin[0] - cam_x), int(self.origin[1] - cam_y)
+        if self._base is not None:
+            size = max(2, int(self.radius * 2 * self.progress()))
+            img = AssetManager.resize(self._base, size=(size, size))
+            if img is self._base:
+                img = img.copy()          # jangan ubah alpha surface milik cache bersama
+            img.set_alpha(max(0, 220 - int(220 * self.progress())))
+            surface.blit(img, img.get_rect(center=(ox, oy)))
+            return
         r = max(1, int(self.radius * self.progress()))
         alpha = max(0, 200 - int(200 * self.progress()))
         surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
@@ -100,6 +137,8 @@ class LineSlash(SkillEffect):
         self.direction = direction
         self.length = length
         self.width = width
+        self._use_directional("effects/line_slash", player_pos, length, width,
+                              math.atan2(direction[1], direction[0]))
 
     def hits(self, enemy_pos):
         ox, oy = self.origin
@@ -112,29 +151,51 @@ class LineSlash(SkillEffect):
         return perp <= self.width / 2
 
     def draw(self, surface, cam_x, cam_y):
+        if self._sprite is not None:
+            self._draw_sprite(surface, cam_x, cam_y)
+            return
         ox, oy = self.origin[0] - cam_x, self.origin[1] - cam_y
         dx, dy = self.direction
         end = (ox + dx * self.length, oy + dy * self.length)
         fade = max(0, 1 - self.progress())
         surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        alpha = int(220 * fade)
-        pygame.draw.line(surf, (*self.color, alpha), (ox, oy), end, max(1, int(self.width)))
+        pygame.draw.line(surf, (*self.color, int(220 * fade)), (ox, oy), end, max(1, int(self.width)))
         surface.blit(surf, (0, 0))
 
 
 class ZigzagChain(SkillEffect):
     def __init__(self, segments, color):
         super().__init__("zigzag", 0.3, color)
-        self.segments = segments   # list of (pos_a, pos_b) untuk digambar
+        self.segments = segments   # list of (pos_a, pos_b)
+
+        # satu sprite petir per sambungan, diregangkan sepanjang sambungannya
+        self._parts = []
+        manager = assets.get()
+        for pa, pb in segments:
+            dx, dy = pb[0] - pa[0], pb[1] - pa[1]
+            length = math.hypot(dx, dy)
+            if length < 1:
+                continue
+            result = manager.directional(("effects/lightning",), length,
+                                         config.LIGHTNING_THICKNESS, math.atan2(dy, dx))
+            if result is None:
+                self._parts = []
+                break
+            sprite, offset = result
+            self._parts.append((sprite, (pa[0] + offset[0], pa[1] + offset[1])))
 
     def draw(self, surface, cam_x, cam_y):
-        fade = max(0, 1 - self.progress())
+        fade = max(0.0, 1 - self.progress())
+        if self._parts:
+            for sprite, (cx, cy) in self._parts:
+                sprite.set_alpha(int(255 * fade))
+                surface.blit(sprite, sprite.get_rect(center=(cx - cam_x, cy - cam_y)))
+            return
         surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        alpha = int(255 * fade)
         for a, b in self.segments:
             pa = (a[0] - cam_x, a[1] - cam_y)
             pb = (b[0] - cam_x, b[1] - cam_y)
-            pygame.draw.line(surf, (*self.color, alpha), pa, pb, 3)
+            pygame.draw.line(surf, (*self.color, int(255 * fade)), pa, pb, 3)
         surface.blit(surf, (0, 0))
 
 
@@ -211,8 +272,8 @@ class SkillManager:
 
     def _do_square(self, cfg, player):
         player.activate_shield(cfg["duration"])
-        # Visual perisai digambar langsung oleh Player.draw() selama shield_timer > 0,
-        # jadi tidak perlu SkillEffect terpisah untuk jurus ini.
+        # Visual perisai digambar oleh Player.draw() selama shield_timer > 0
+        # (sprite effects/shield kalau ada, kalau tidak kotak vektor).
 
     def _do_line(self, cfg, player, enemies, gesture_direction):
         gx, gy = gesture_direction
