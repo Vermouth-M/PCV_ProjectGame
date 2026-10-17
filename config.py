@@ -1,14 +1,5 @@
-"""
-config.py
-=========
-Semua konstanta dan pengaturan game dikumpulkan di sini supaya mudah
-di-tweak tanpa perlu mengubah logika di file lain.
-"""
 
-
-# ---------------------------------------------------------------------------
-# Layar & Umum
-# ---------------------------------------------------------------------------
+import os
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 FPS = 60
@@ -189,3 +180,22 @@ SKILL_DEFS = {
 # Kalau True, tombol 1-5 bisa langsung memicu jurus tanpa kamera.
 # Berguna untuk development/testing atau kalau kamera tidak tersedia.
 DEBUG_KEYBOARD_GESTURE_FALLBACK = True
+
+# ---------------------------------------------------------------------------
+# Aset gambar (sprite, efek, latar, ikon). Folder `assets/` BOLEH KOSONG:
+# bagian yang file-nya tidak ada otomatis memakai gambar vektor bawaan.
+# Daftar nama file yang dikenali: assets/README.md atau `python tools/check_assets.py`
+# ---------------------------------------------------------------------------
+USE_ASSETS = True    # False = paksa semua gambar vektor (abaikan folder assets/)
+ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+
+# Ukuran sprite = diameter hitbox x faktor ini (sisi terpanjang gambar disesuaikan,
+# rasio aspek dipertahankan). Naikkan/turunkan kalau sprite terasa terlalu kecil/besar.
+SPRITE_SCALE = {"player": 2.2, "enemy": 2.0, "xp_orb": 3.0, "projectile": 3.0}
+
+# Kecepatan animasi (frame per detik)
+ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8}
+
+LIGHTNING_THICKNESS = 30        # tebal sprite petir pada tiap sambungan (px)
+BACKGROUND_TILE_SCALE = 1.0     # skala tile latar (1.0 = ukuran asli gambar)
+SKILL_ICON_SIZE = 20            # ukuran ikon jurus di HUD (px)

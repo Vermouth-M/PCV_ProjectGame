@@ -27,21 +27,34 @@ hitam.
 - Preview kamera besar dengan penanda tracking (zona diabaikan, posisi
   sarung tangan, lintasan gestur).
 - Fallback tombol `1`-`5` untuk memicu jurus tanpa kamera.
+- **Dukungan aset gambar**: sprite beranimasi, efek jurus, latar tile, dan ikon HUD
+  dimuat dari folder `assets/`. Folder dibiarkan kosong; yang belum ada otomatis
+  memakai gambar vektor, jadi aset bisa ditambah satu per satu.
 
 ## Struktur Folder
 
 ```
 vampire_gesture_survivor/
 ├── main.py                      # entry point
-├── config.py                    # semua konstanta (gameplay + tracking)
+├── config.py                    # semua konstanta (gameplay, tracking, aset)
 ├── requirements.txt
 ├── README.md
+│
+├── assets/                      # TEMPAT ASET GAMBAR (sengaja kosong; isi sendiri)
+│   ├── README.md                  # daftar nama file, orientasi, ukuran
+│   ├── sprites/                   # player/ enemies/ pickups/ projectiles/
+│   ├── effects/                   # efek 5 jurus + perisai
+│   ├── backgrounds/               # tile lantai
+│   └── ui/                        # ikon jurus
 │
 ├── game/                        # logika gameplay (tidak menyentuh kamera)
 │   ├── engine.py                  # loop utama & orkestrasi
 │   ├── player.py  enemy.py  spawner.py  pickups.py  projectile.py
-│   ├── skills.py                  # 5 jurus + efek visual
-│   ├── ui.py                      # HUD, bar pencahayaan, banner kalibrasi
+│   ├── skills.py                  # 5 jurus + efek (sprite atau vektor)
+│   ├── assets.py                  # pemuat aset: cache, skala, flip, rotasi + fallback vektor
+│   ├── animation.py               # animasi frame demi frame
+│   ├── background.py              # latar (tile gambar atau grid vektor)
+│   ├── ui.py                      # HUD, bar pencahayaan, banner kalibrasi, ikon jurus
 │   ├── camera_overlay.py          # panel preview kamera + penanda tracking
 │   └── utils.py
 │
@@ -53,9 +66,13 @@ vampire_gesture_survivor/
 │   ├── shape_classifier.py        # lintasan -> nama bentuk (geometri murni)
 │   └── gesture_thread.py          # kamera di thread terpisah (anti-lag)
 │
+├── tools/
+│   └── check_assets.py            # cek aset mana yang sudah/belum terbaca
+│
 └── tests/
     ├── test_shape_classifier.py   # tes pengenalan bentuk
-    └── test_black_tracking.py     # tes pencahayaan, rambut vs sarung tangan, kalibrasi
+    ├── test_black_tracking.py     # tes pencahayaan, rambut vs sarung tangan, kalibrasi
+    └── test_assets.py             # tes sistem aset (sprite, efek, latar, fallback)
 ```
 
 ## Instalasi
@@ -159,6 +176,32 @@ dan persentase frame yang sedang diabaikan.
 | `CAMERA_PANEL_WIDTH/HEIGHT/ALPHA` | Ukuran & transparansi panel kamera                            |
 | `CAMERA_MIRROR`                 | `False` untuk mematikan tampilan cermin                         |
 
+## Aset Gambar (Sprite, Efek, Latar)
+
+Folder `assets/` disediakan kosong. Game **tetap jalan penuh tanpa aset**; tiap
+gambar yang kamu taruh langsung menggantikan versi vektornya.
+
+```bash
+python tools/check_assets.py     # daftar aset yang dikenali + status ada/belum
+```
+
+Ringkasan penamaan (detail lengkap, orientasi, dan ukuran ada di `assets/README.md`):
+
+| Yang digantikan        | File                                                                 |
+|------------------------|----------------------------------------------------------------------|
+| Pemain                 | `sprites/player/idle_0.png ...`, `walk_0.png ...` (menghadap kanan)  |
+| Musuh                  | `sprites/enemies/basic_walk_0.png ...` atau `basic.png`; juga `fast`, `tank` |
+| Orb XP / Peluru        | `sprites/pickups/xp_orb.png`, `sprites/projectiles/bullet.png`        |
+| Efek 5 jurus           | `effects/triangle_slash`, `circle_shockwave`, `line_slash`, `lightning`, `shield` |
+| Latar                  | `backgrounds/ground.png` (tile seamless)                             |
+| Ikon jurus di HUD      | `ui/skill_triangle.png`, `skill_circle`, `skill_square`, `skill_line`, `skill_zigzag` |
+
+Yang diurus otomatis oleh kode: flip sprite saat menghadap kiri, musuh menoleh ke
+pemain, kilat putih saat musuh kena hit, kedip merah saat pemain kena hit, efek
+diregangkan/diputar sesuai arah, ikon redup saat cooldown. Hitbox tidak berubah
+mengikuti ukuran gambar. Ukuran tampil dan kecepatan animasi diatur di `config.py`
+(`SPRITE_SCALE`, `ANIM_FPS`, `LIGHTNING_THICKNESS`, `BACKGROUND_TILE_SCALE`, `USE_ASSETS`).
+
 ## Menambah Jurus Baru
 
 1. Definisikan di `config.SKILL_DEFS`.
@@ -173,6 +216,7 @@ Tidak butuh webcam (memakai scene sintetis):
 ```bash
 python tests/test_shape_classifier.py
 python tests/test_black_tracking.py
+python tests/test_assets.py
 ```
 
 ## Keterbatasan yang Diketahui

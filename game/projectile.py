@@ -3,6 +3,9 @@
 import math
 import pygame
 
+import config
+from game import assets
+
 
 class Projectile:
     def __init__(self, x, y, target_pos, damage, speed=420, radius=5, pierce=0, color=(255, 255, 255)):
@@ -16,6 +19,14 @@ class Projectile:
         self.color = color
         self.lifetime = 2.0
         self.hit_enemies = set()
+
+        # sprite peluru (menghadap kanan), diputar sekali saat dibuat ke arah tembakan
+        manager = assets.get()
+        base = manager.image("sprites/projectiles/bullet",
+                             size=int(radius * 2 * config.SPRITE_SCALE["projectile"]))
+        self._sprite = None
+        if base is not None:
+            self._sprite = manager.rotated(base, -math.degrees(math.atan2(self.vy, self.vx)))
 
     @property
     def pos(self):
@@ -31,4 +42,7 @@ class Projectile:
 
     def draw(self, surface, cam_x, cam_y):
         sx, sy = int(self.x - cam_x), int(self.y - cam_y)
-        pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
+        if self._sprite is not None:
+            surface.blit(self._sprite, self._sprite.get_rect(center=(sx, sy)))
+        else:
+            pygame.draw.circle(surface, self.color, (sx, sy), self.radius)
