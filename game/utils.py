@@ -1,5 +1,3 @@
-"""game/utils.py -- helper matematika & collision kecil-kecilan."""
-
 import math
 
 

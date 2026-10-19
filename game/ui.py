@@ -85,10 +85,6 @@ class UI:
         if skill_manager.message_timer > 0:
             msg2 = self.font.render(skill_manager.last_message, True, (255, 255, 255))
             surface.blit(msg2, (x, y + 22))
-
-    # ------------------------------------------------------------------
-    # Bar pencahayaan + status kalibrasi (di atas panel kamera)
-    # ------------------------------------------------------------------
     _LIGHT_STATUS_COLOR = {"good": (110, 220, 130), "warn": (240, 190, 70), "bad": (240, 90, 90)}
     _LIGHT_ZONE_COLORS = [(150, 45, 45), (190, 130, 40), (50, 160, 85), (140, 185, 70), (190, 60, 55)]
 

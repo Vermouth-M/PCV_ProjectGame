@@ -1,17 +1,3 @@
-"""
-game/settings.py
-==================
-Pengaturan yang bisa diubah dari menu "Pengaturan" dan disimpan ke
-`settings.json` (di folder proyek) supaya bertahan antar sesi.
-
-Cara kerjanya: tiap Setting punya daftar pilihan yang sudah ditentukan dan
-membaca/menulis langsung ke modul `config` (yang dibaca kode lain saat dipakai,
-jadi perubahan berlaku seketika). File JSON hanya menyimpan pilihan terakhir.
-
-Ketahanan: file hilang/rusak/berisi nilai di luar pilihan -> diabaikan, game tetap
-memakai nilai bawaan config.py. Gagal menulis (folder read-only) -> hanya peringatan.
-"""
-
 import json
 import os
 
@@ -23,12 +9,6 @@ SETTINGS_FILE = os.path.join(os.path.dirname(os.path.abspath(config.__file__)), 
 
 class Setting:
     def __init__(self, key, label, choices, get, set_, after=None):
-        """
-        key     : nama di settings.json
-        choices : [(nilai, teks_tampil), ...]
-        get/set_: baca / tulis nilai di config
-        after   : dipanggil setelah pengguna mengubah lewat menu (BUKAN saat load)
-        """
         self.key = key
         self.label = label
         self.choices = choices

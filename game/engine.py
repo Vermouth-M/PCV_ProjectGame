@@ -1,20 +1,3 @@
-"""
-game/engine.py
-================
-Kelas Game utama: inisialisasi pygame, loop utama, alur antar layar (state),
-update semua entitas, serta jembatan antara input gestur (gesture/) dengan
-sistem jurus (game/skills.py).
-
-State:
-    menu       menu utama            (game/screens/main_menu.py)
-    howto      cara bermain          (game/screens/how_to_play.py)
-    settings   pengaturan            (game/screens/settings_screen.py)
-    camera     tes kamera            (game/screens/camera_test.py)
-    playing    sedang bermain        (ditangani langsung di file ini)
-    paused     jeda  (overlay)       (game/screens/overlays.py)
-    gameover   game over (overlay)   (game/screens/overlays.py)
-"""
-
 import pygame
 
 import config
@@ -59,7 +42,6 @@ class Game:
         self._debug_shape_keys = {
             pygame.K_1: "triangle",
             pygame.K_2: "circle",
-            pygame.K_3: "square",
             pygame.K_4: "line",
             pygame.K_5: "zigzag",
         }

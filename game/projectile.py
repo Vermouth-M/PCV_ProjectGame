@@ -19,8 +19,6 @@ class Projectile:
         self.color = color
         self.lifetime = 2.0
         self.hit_enemies = set()
-
-        # sprite peluru (menghadap kanan), diputar sekali saat dibuat ke arah tembakan
         manager = assets.get()
         base = manager.image("sprites/projectiles/bullet",
                              size=int(radius * 2 * config.SPRITE_SCALE["projectile"]))

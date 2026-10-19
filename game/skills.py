@@ -1,24 +1,3 @@
-"""
-game/skills.py
-================
-Implementasi setiap "jurus" yang bisa dipicu dengan menggambar bentuk
-di depan kamera:
-
-    segitiga  -> Jurus Segitiga Pedang            (tebasan area di depan pemain)
-    lingkaran -> Jurus Lingkaran Gelombang Kejut   (AoE 360 derajat + knockback)
-    kotak     -> Jurus Kotak Perisai               (kebal sementara)
-    garis     -> Jurus Garis Tebasan               (tebasan lurus menembus musuh)
-    zigzag    -> Jurus Zigzag Petir                (petir loncat antar musuh)
-
-SkillManager menyimpan cooldown tiap jurus dan menghasilkan objek
-"SkillEffect" yang dianimasikan sebentar sambil langsung mengecek
-tabrakan dengan musuh saat dibuat.
-
-Tampilan efek: memakai sprite dari assets/effects/ kalau ada (diregangkan &
-diputar SEKALI saat efek dibuat, lalu hanya alpha yang berubah per frame);
-kalau tidak ada, memakai gambar vektor.
-"""
-
 import math
 import pygame
 
@@ -245,8 +224,6 @@ class SkillManager:
             self._do_triangle(cfg, player, enemies)
         elif shape == "circle":
             self._do_circle(cfg, player, enemies)
-        elif shape == "square":
-            self._do_square(cfg, player)
         elif shape == "line":
             self._do_line(cfg, player, enemies, gesture_direction)
         elif shape == "zigzag":
@@ -269,12 +246,7 @@ class SkillManager:
                 kb = (dx / dist * cfg["knockback"], dy / dist * cfg["knockback"])
                 e.take_damage(cfg["damage"], knockback=kb)
         self.effects.append(effect)
-
-    def _do_square(self, cfg, player):
-        player.activate_shield(cfg["duration"])
-        # Visual perisai digambar oleh Player.draw() selama shield_timer > 0
-        # (sprite effects/shield kalau ada, kalau tidak kotak vektor).
-
+        
     def _do_line(self, cfg, player, enemies, gesture_direction):
         gx, gy = gesture_direction
         if gx == 0 and gy == 0:
