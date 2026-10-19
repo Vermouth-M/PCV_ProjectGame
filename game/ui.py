@@ -77,7 +77,7 @@ class UI:
             msg = "MEREKAM JURUS... gambar pola dengan sarung tangan hitam di depan kamera"
             color = (255, 230, 90)
         else:
-            msg = "Tahan [SPASI] lalu gambar pola dengan sarung tangan hitam"
+            msg = "Tahan [SPASI] lalu gambar pola dengan sarung tangan hitam  |  [ESC] jeda"
             color = config.COLOR_TEXT_DIM
         text = self.font_small.render(msg, True, color)
         surface.blit(text, (x, y))
@@ -136,7 +136,7 @@ class UI:
             legend, legend_color = "[C] kalibrasi  [M] mask  merah=diabaikan", config.COLOR_TEXT_DIM
         surface.blit(self.font_small.render(legend, True, legend_color), (x + 6, line_y + 32))
 
-    def draw_calibration_banner(self, surface, progress):
+    def draw_calibration_banner(self, surface, progress, title=None, subtitle=None):
         w, h = 600, 92
         x = surface.get_width() // 2 - w // 2
         y = 110
@@ -145,9 +145,10 @@ class UI:
         surface.blit(box, (x, y))
         pygame.draw.rect(surface, (255, 230, 90), (x, y, w, h), width=2)
 
-        t1 = self.font.render("KALIBRASI LATAR (rambut & benda hitam diam)", True, (255, 230, 90))
-        t2 = self.font_small.render("Duduk diam. Jauhkan sarung tangan dari kamera, atau gerakkan terus.",
-                                    True, config.COLOR_TEXT)
+        t1 = self.font.render(title or "KALIBRASI LATAR (rambut & benda hitam diam)", True, (255, 230, 90))
+        t2 = self.font_small.render(
+            subtitle or "Duduk diam. Jauhkan sarung tangan dari kamera, atau gerakkan terus.",
+            True, config.COLOR_TEXT)
         surface.blit(t1, (x + w // 2 - t1.get_width() // 2, y + 10))
         surface.blit(t2, (x + w // 2 - t2.get_width() // 2, y + 38))
         self.draw_bar(surface, x + 20, y + 64, w - 40, 14, progress, (40, 40, 40), (255, 230, 90), border=(255, 255, 255))

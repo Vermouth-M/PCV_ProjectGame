@@ -1,5 +1,16 @@
+"""
+config.py
+=========
+Semua konstanta dan pengaturan game dikumpulkan di sini supaya mudah
+di-tweak tanpa perlu mengubah logika di file lain.
+"""
 
 import os
+
+
+# ---------------------------------------------------------------------------
+# Layar & Umum
+# ---------------------------------------------------------------------------
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 700
 FPS = 60
@@ -111,6 +122,7 @@ LIGHT_LEVEL_OVEREXPOSED = 232
 GESTURE_AUTO_CALIBRATE_ON_START = True   # kalibrasi otomatis saat game dibuka
 GESTURE_CALIB_FRAMES = 45            # jumlah frame yang dipelajari (~1.5 detik)
 GESTURE_CALIB_TIMEOUT = 8.0          # detik; selesai/batal paksa kalau kamera macet
+GESTURE_CALIB_PREPARE_SECONDS = 1.5   # hitung mundur sebelum kalibrasi (sempat menjauhkan sarung tangan)
 GESTURE_WARMUP_FRAMES = 20           # frame awal diabaikan (auto-exposure webcam)
 GESTURE_CALIB_PERSISTENCE = 0.7      # piksel hitam di >=70% frame dianggap "diam"
 GESTURE_EXCLUSION_DILATE = 12        # px pelebaran zona diabaikan (toleransi kepala goyang)

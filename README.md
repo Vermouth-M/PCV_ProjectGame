@@ -27,6 +27,8 @@ hitam.
 - Preview kamera besar dengan penanda tracking (zona diabaikan, posisi
   sarung tangan, lintasan gestur).
 - Fallback tombol `1`-`5` untuk memicu jurus tanpa kamera.
+- **Menu lengkap**: menu utama, Tes Kamera, Cara Bermain, Pengaturan (tersimpan),
+  menu Jeda, dan layar Game Over. Bisa dipakai dengan keyboard maupun mouse.
 - **Dukungan aset gambar**: sprite beranimasi, efek jurus, latar tile, dan ikon HUD
   dimuat dari folder `assets/`. Folder dibiarkan kosong; yang belum ada otomatis
   memakai gambar vektor, jadi aset bisa ditambah satu per satu.
@@ -51,6 +53,15 @@ vampire_gesture_survivor/
 │   ├── engine.py                  # loop utama & orkestrasi
 │   ├── player.py  enemy.py  spawner.py  pickups.py  projectile.py
 │   ├── skills.py                  # 5 jurus + efek (sprite atau vektor)
+│   ├── settings.py                # pengaturan yang tersimpan ke settings.json
+│   ├── screens/                   # layar-layar menu
+│   │   ├── main_menu.py             # menu utama
+│   │   ├── how_to_play.py           # cara bermain
+│   │   ├── settings_screen.py       # pengaturan
+│   │   ├── camera_test.py           # tes kamera + latihan jurus
+│   │   ├── overlays.py              # jeda & game over
+│   │   ├── widgets.py               # Menu (keyboard+mouse), teks, ikon bentuk
+│   │   └── base.py                  # kelas dasar Screen
 │   ├── assets.py                  # pemuat aset: cache, skala, flip, rotasi + fallback vektor
 │   ├── animation.py               # animasi frame demi frame
 │   ├── background.py              # latar (tile gambar atau grid vektor)
@@ -72,7 +83,8 @@ vampire_gesture_survivor/
 └── tests/
     ├── test_shape_classifier.py   # tes pengenalan bentuk
     ├── test_black_tracking.py     # tes pencahayaan, rambut vs sarung tangan, kalibrasi
-    └── test_assets.py             # tes sistem aset (sprite, efek, latar, fallback)
+    ├── test_assets.py             # tes sistem aset (sprite, efek, latar, fallback)
+    └── test_menu.py               # tes menu, alur layar, jeda, pengaturan, tes kamera
 ```
 
 ## Instalasi
@@ -84,6 +96,12 @@ conda activate opencv_env
 cd vampire_gesture_survivor
 pip install pygame          # opencv-python & numpy biasanya sudah ada di env
 python main.py
+```
+
+Tanpa webcam (jurus lewat tombol `1`-`5` saat bermain):
+
+```bash
+python main.py --no-camera
 ```
 
 (`pip install -r requirements.txt` juga bisa; isinya hanya `pygame`,
@@ -99,7 +117,26 @@ python main.py
 | `C`             | **Kalibrasi ulang** rambut/benda hitam diam (game membeku sebentar)     |
 | `M`             | Tampilkan mask hitam di panel kamera (untuk memeriksa tracking)         |
 | `1` - `5`       | Picu jurus tanpa kamera (segitiga/lingkaran/kotak/garis/zigzag)         |
-| `ESC` / `R`     | Keluar / main lagi setelah Game Over                                    |
+| `ESC`           | **Jeda** (membuka menu jeda); `Esc` lagi untuk lanjut                   |
+| `R`             | Main lagi (di layar Game Over)                                          |
+
+## Menu
+
+Semua menu: **W/S atau panah** memilih, **Enter atau klik mouse** menjalankan,
+**Esc** kembali.
+
+| Layar          | Isi                                                                          |
+|----------------|-------------------------------------------------------------------------------|
+| **Menu Utama** | Mulai Game, Tes Kamera, Cara Bermain, Pengaturan, Keluar. Menampilkan status kamera & pencahayaan |
+| **Tes Kamera** | Preview besar + bar pencahayaan + zona rambut. Tekan `C` kalibrasi, `M` mask, lalu **tahan SPASI dan gambar bentuk** untuk melihat bentuk apa yang dikenali, tanpa musuh. Cocok untuk memeriksa setup sebelum bermain |
+| **Cara Bermain** | Kontrol, tabel 5 jurus dengan ikon bentuk, dan tips                        |
+| **Pengaturan** | Kamera mode cermin, kalibrasi otomatis, ukuran panel kamera, mode fokus (slow-mo), tombol cadangan 1-5, aset gambar, kembalikan ke bawaan. Panah kiri/kanan (A/D) mengubah nilai |
+| **Jeda** (`Esc`) | Lanjutkan, Kalibrasi Ulang, Pengaturan, Menu Utama (ada konfirmasi sebelum permainan dibuang) |
+| **Game Over**  | Statistik (waktu bertahan, kill, level), Main Lagi (`R`), Menu Utama (`Esc`) |
+
+Pengaturan **tersimpan otomatis** di `settings.json` (folder proyek) dan dimuat saat game
+dibuka. Hapus file itu untuk kembali ke nilai bawaan `config.py`. File yang rusak atau
+berisi nilai tidak valid diabaikan.
 
 ## Cara Kerja Tracking (tiga lapisan, semua OpenCV murni)
 
@@ -146,9 +183,11 @@ dan persentase frame yang sedang diabaikan.
 
 ## Kalibrasi Rambut: kapan dan bagaimana
 
-- Otomatis jalan **saat game dibuka** (progress bar kuning). Duduk diam di
-  posisi bermain, dan **jauhkan sarung tangan dari kamera atau gerakkan terus**
-  (jangan didiamkan di depan kamera; sarung tangan yang diam ikut diabaikan).
+- Otomatis jalan **saat Mulai Game** (bisa dimatikan di Pengaturan): hitung mundur
+  1,5 detik ("Bersiap kalibrasi") supaya sempat menjauhkan sarung tangan, lalu progress
+  bar kuning. Duduk diam di posisi bermain, dan **jauhkan sarung tangan dari kamera
+  atau gerakkan terus** (jangan didiamkan di depan kamera; sarung tangan yang diam
+  ikut diabaikan). "Main Lagi" setelah Game Over tidak mengulang kalibrasi.
 - Tekan **`C`** untuk mengulang, misalnya setelah pindah posisi duduk,
   berganti ruangan, atau kepala bergeser jauh. Selama kalibrasi dunia game
   dibekukan dan waktu bertahan tidak berjalan.
@@ -217,6 +256,7 @@ Tidak butuh webcam (memakai scene sintetis):
 python tests/test_shape_classifier.py
 python tests/test_black_tracking.py
 python tests/test_assets.py
+python tests/test_menu.py
 ```
 
 ## Keterbatasan yang Diketahui

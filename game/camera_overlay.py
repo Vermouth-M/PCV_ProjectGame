@@ -31,7 +31,7 @@ def cv2_frame_to_surface(frame):
 
 
 def draw_camera_panel(target_surface, frame, mask, points, centroid=None,
-                      exclusion=None, show_mask=False):
+                      exclusion=None, show_mask=False, rect=None, alpha=None):
     """
     Panel preview kamera di pojok kanan-bawah, berisi:
     - feed kamera (atau mask hitam kalau show_mask=True, tombol M)
@@ -42,7 +42,7 @@ def draw_camera_panel(target_surface, frame, mask, points, centroid=None,
     `points`/`centroid`/`mask`/`exclusion` ada dalam koordinat resolusi kerja
     tracking (config.GESTURE_PROCESS_WIDTH x HEIGHT) dan diskalakan ke panel.
     """
-    rect = get_panel_rect(target_surface)
+    rect = rect or get_panel_rect(target_surface)
     pw, ph = rect.size
     sx = pw / config.GESTURE_PROCESS_WIDTH
     sy = ph / config.GESTURE_PROCESS_HEIGHT
@@ -72,5 +72,5 @@ def draw_camera_panel(target_surface, frame, mask, points, centroid=None,
         pygame.draw.circle(panel, (60, 255, 120), (cx, cy), 3)
 
     pygame.draw.rect(panel, (255, 255, 255), panel.get_rect(), width=2)
-    panel.set_alpha(config.CAMERA_PANEL_ALPHA)
+    panel.set_alpha(config.CAMERA_PANEL_ALPHA if alpha is None else alpha)
     target_surface.blit(panel, rect.topleft)

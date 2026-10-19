@@ -1,30 +1,45 @@
 """
 game/engine.py
 ================
-Kelas Game utama: inisialisasi pygame, loop utama, update semua entitas,
-serta jembatan antara input gestur (dari gesture/) dengan sistem jurus
-(dari game/skills.py).
+Kelas Game utama: inisialisasi pygame, loop utama, alur antar layar (state),
+update semua entitas, serta jembatan antara input gestur (gesture/) dengan
+sistem jurus (game/skills.py).
+
+State:
+    menu       menu utama            (game/screens/main_menu.py)
+    howto      cara bermain          (game/screens/how_to_play.py)
+    settings   pengaturan            (game/screens/settings_screen.py)
+    camera     tes kamera            (game/screens/camera_test.py)
+    playing    sedang bermain        (ditangani langsung di file ini)
+    paused     jeda  (overlay)       (game/screens/overlays.py)
+    gameover   game over (overlay)   (game/screens/overlays.py)
 """
 
 import pygame
 
 import config
-from game.player import Player
-from game.spawner import Spawner
+from game import assets, background, camera_overlay, settings
 from game.pickups import XPOrb
+from game.player import Player
 from game.projectile import Projectile
+from game.screens.camera_test import CameraTestScreen
+from game.screens.how_to_play import HowToPlayScreen
+from game.screens.main_menu import MainMenuScreen
+from game.screens.overlays import GameOverScreen, PauseScreen
+from game.screens.settings_screen import SettingsScreen
 from game.skills import SkillManager
+from game.spawner import Spawner
 from game.ui import UI
 from game.utils import circle_collide, distance
-from game import assets, background, camera_overlay
-
-from gesture.gesture_thread import GestureThread
 from gesture import shape_classifier
+from gesture.gesture_thread import GestureThread
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, use_camera=True):
+        """use_camera=False: jangan membuka webcam (untuk tes / bermain dengan tombol 1-5)."""
         pygame.init()
+        settings.load()    # terapkan settings.json ke config SEBELUM ada yang membacanya
         self.screen = pygame.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         pygame.display.set_caption(config.GAME_TITLE)
         self.clock = pygame.time.Clock()
@@ -32,23 +47,13 @@ class Game:
         assets.init()   # sprite/efek/latar dari folder assets/ (kosong = gambar vektor)
         print(assets.get().summary())
 
-        self.player = Player(0, 0)
-        self.spawner = Spawner()
-        self.skills = SkillManager()
         self.ui = UI()
-
-        self.enemies = []
-        self.orbs = []
-        self.projectiles = []
-
-        self.elapsed = 0.0
-        self.state = "playing"   # playing | gameover
+        self.running = True
 
         self.gesture_thread = GestureThread()
-        self.camera_available = self.gesture_thread.start()
-        self.show_mask = False   # tombol M: tampilkan mask hitam di panel kamera
-        if self.camera_available and config.GESTURE_AUTO_CALIBRATE_ON_START:
-            self.gesture_thread.start_calibration()
+        self.camera_available = self.gesture_thread.start() if use_camera else False
+        self.show_mask = False       # tombol M: tampilkan mask hitam di panel kamera
+        self.calib_prepare = 0.0     # sisa hitung mundur sebelum kalibrasi dimulai (detik)
 
         self.space_held = False
         self._debug_shape_keys = {
@@ -59,56 +64,167 @@ class Game:
             pygame.K_5: "zigzag",
         }
 
+        self._reset_world()
+
+        self.screens = {
+            "menu": MainMenuScreen(self),
+            "howto": HowToPlayScreen(self),
+            "settings": SettingsScreen(self),
+            "camera": CameraTestScreen(self),
+            "paused": PauseScreen(self),
+            "gameover": GameOverScreen(self),
+        }
+        self.state = None
+        self.set_state("menu")
+
+    # ------------------------------------------------------------------
+    # Alur layar
+    # ------------------------------------------------------------------
+    def set_state(self, new_state):
+        old = self.screens.get(self.state) if self.state else None
+        if old is not None:
+            old.on_exit()
+        self.state = new_state
+        pygame.mouse.set_visible(new_state != "playing")
+        screen = self.screens.get(new_state)
+        if screen is not None:
+            screen.on_enter()
+
+    def open_settings(self, return_to):
+        self.screens["settings"].return_to = return_to
+        self.set_state("settings")
+
+    def start_new_game(self, calibrate=True):
+        """Mulai permainan baru. calibrate=True: jalankan kalibrasi rambut (kalau diaktifkan)."""
+        self._reset_world()
+        self._cancel_recording()
+        self.set_state("playing")
+        if calibrate and config.GESTURE_AUTO_CALIBRATE_ON_START:
+            self.begin_calibration()
+
+    def go_to_menu(self):
+        self._cancel_recording()
+        self.set_state("menu")
+
+    def pause(self):
+        self._cancel_recording()
+        self.set_state("paused")
+
+    def quit(self):
+        self.running = False
+
+    def on_setting_changed(self, key):
+        """Dipanggil layar Pengaturan setelah pilihan berubah."""
+        if key in ("camera_mirror", "*"):
+            # zona rambut yang dipelajari memakai orientasi lama -> tidak berlaku lagi
+            self.gesture_thread.tracker.background.clear()
+
+    def _cancel_recording(self):
+        if self.space_held or self.gesture_thread.is_recording():
+            self.gesture_thread.end_recording()
+        self.space_held = False
+
+    # ------------------------------------------------------------------
+    # Kalibrasi (hitung mundur dulu supaya sempat menjauhkan sarung tangan)
+    # ------------------------------------------------------------------
+    def begin_calibration(self):
+        if not self.camera_available:
+            return
+        if config.GESTURE_CALIB_PREPARE_SECONDS > 0:
+            self.calib_prepare = config.GESTURE_CALIB_PREPARE_SECONDS
+        else:
+            self.gesture_thread.start_calibration()
+
+    def calibration_active(self):
+        return self.calib_prepare > 0 or self.gesture_thread.is_calibrating()
+
+    def _tick_calibration_prepare(self, dt):
+        if self.calib_prepare > 0:
+            self.calib_prepare -= dt
+            if self.calib_prepare <= 0:
+                self.calib_prepare = 0.0
+                self.gesture_thread.start_calibration()
+
+    def draw_calibration_overlay(self, surface):
+        """Banner hitung mundur / progres kalibrasi (dipakai saat bermain & di Tes Kamera)."""
+        if self.calib_prepare > 0:
+            total = config.GESTURE_CALIB_PREPARE_SECONDS
+            self.ui.draw_calibration_banner(
+                surface, 1.0 - self.calib_prepare / total,
+                title="BERSIAP KALIBRASI",
+                subtitle=f"Jauhkan sarung tangan dari kamera... mulai {self.calib_prepare:.1f} detik")
+        elif self.gesture_thread.is_calibrating():
+            self.ui.draw_calibration_banner(surface, self.gesture_thread.calibration_progress())
+
+    # ------------------------------------------------------------------
+    # Loop utama
     # ------------------------------------------------------------------
     def run(self):
-        running = True
-        while running:
+        while self.running:
             dt = self.clock.tick(config.FPS) / 1000.0
-            running = self._handle_events()
-
-            if self.state == "playing":
-                self._update(dt)
-
-            self._draw()
+            self.process_events()
+            self.update(dt)
+            self.draw()
             pygame.display.flip()
 
         self.gesture_thread.stop()
         pygame.quit()
 
-    # ------------------------------------------------------------------
-    def _handle_events(self):
+    def process_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False
+                self.running = False
+                continue
+            if self.state == "playing":
+                self._handle_play_event(event)
+            else:
+                screen = self.screens.get(self.state)
+                if screen is not None:
+                    screen.handle_event(event)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    return False
+    def update(self, dt):
+        self._tick_calibration_prepare(dt)
+        if self.state == "playing":
+            self._update_play(dt)
+        else:
+            screen = self.screens.get(self.state)
+            if screen is not None:
+                screen.update(dt)
 
-                if (event.key == pygame.K_SPACE and self.state == "playing"
-                        and not self.gesture_thread.is_calibrating()):
+    def draw(self):
+        screen = self.screens.get(self.state)
+        overlay = screen is not None and screen.overlay
+        if self.state == "playing" or overlay:
+            # di balik Jeda/Game Over panel kamera disembunyikan agar tidak menabrak teks menu
+            self._draw_world(show_camera=not overlay)
+        if screen is not None:
+            screen.draw(self.screen)
+
+    # ------------------------------------------------------------------
+    # Input saat bermain
+    # ------------------------------------------------------------------
+    def _handle_play_event(self, event):
+        if event.type == pygame.KEYDOWN:
+            key = event.key
+            if key == pygame.K_ESCAPE:
+                self.pause()
+            elif key == pygame.K_SPACE:
+                if not self.calibration_active():
                     self.space_held = True
                     self.gesture_thread.begin_recording()
+            elif key == pygame.K_c:
+                if not self.space_held:
+                    self.begin_calibration()
+            elif key == pygame.K_m:
+                self.show_mask = not self.show_mask
+            elif config.DEBUG_KEYBOARD_GESTURE_FALLBACK and key in self._debug_shape_keys:
+                shape = self._debug_shape_keys[key]
+                self.skills.trigger(shape, self.player, self.enemies, self.player.facing)
 
-                if event.key == pygame.K_c and self.state == "playing" and not self.space_held:
-                    self.gesture_thread.start_calibration()
-
-                if event.key == pygame.K_m:
-                    self.show_mask = not self.show_mask
-
-                if event.key == pygame.K_r and self.state == "gameover":
-                    self._restart()
-
-                if config.DEBUG_KEYBOARD_GESTURE_FALLBACK and event.key in self._debug_shape_keys:
-                    shape = self._debug_shape_keys[event.key]
-                    self.skills.trigger(shape, self.player, self.enemies, self.player.facing)
-
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_SPACE and self.space_held:
-                    self.space_held = False
-                    self._finish_gesture()
-
-        return True
+        elif event.type == pygame.KEYUP:
+            if event.key == pygame.K_SPACE and self.space_held:
+                self.space_held = False
+                self._finish_gesture()
 
     def _finish_gesture(self):
         points = self.gesture_thread.end_recording()
@@ -117,8 +233,19 @@ class Game:
         self.skills.trigger(shape, self.player, self.enemies, direction)
 
     # ------------------------------------------------------------------
-    def _update(self, dt):
-        calibrating = self.gesture_thread.is_calibrating()
+    # Dunia game
+    # ------------------------------------------------------------------
+    def _reset_world(self):
+        self.player = Player(0, 0)
+        self.spawner = Spawner()
+        self.skills = SkillManager()
+        self.enemies = []
+        self.orbs = []
+        self.projectiles = []
+        self.elapsed = 0.0
+
+    def _update_play(self, dt):
+        calibrating = self.calibration_active()
         if not calibrating:
             self.elapsed += dt
 
@@ -160,9 +287,9 @@ class Game:
         self._cleanup_dead_enemies()
 
         if not self.player.is_alive():
-            self.state = "gameover"
+            self._cancel_recording()
+            self.set_state("gameover")
 
-    # ------------------------------------------------------------------
     def _auto_attack(self, dt):
         if self.player.attack_cooldown_timer > 0 or not self.enemies:
             return
@@ -211,18 +338,9 @@ class Game:
         self.orbs = remaining_orbs
 
     # ------------------------------------------------------------------
-    def _restart(self):
-        self.player = Player(0, 0)
-        self.spawner = Spawner()
-        self.skills = SkillManager()
-        self.enemies = []
-        self.orbs = []
-        self.projectiles = []
-        self.elapsed = 0.0
-        self.state = "playing"
-
+    # Gambar dunia + HUD (juga jadi latar layar Jeda / Game Over)
     # ------------------------------------------------------------------
-    def _draw(self):
+    def _draw_world(self, show_camera=True):
         self.screen.fill(config.COLOR_BG)
         cam_x = self.player.x - config.SCREEN_WIDTH / 2
         cam_y = self.player.y - config.SCREEN_HEIGHT / 2
@@ -242,11 +360,13 @@ class Game:
 
         frame, mask, centroid = self.gesture_thread.get_preview()
         points = self.gesture_thread.current_points()
-        calibrating = self.gesture_thread.is_calibrating()
 
         self.ui.draw_hud(self.screen, self.player, self.elapsed, self.skills,
                           self.gesture_thread.is_recording(), self.camera_available,
                           glove_visible=centroid is not None)
+
+        if not show_camera:
+            return
 
         camera_overlay.draw_camera_panel(
             self.screen, frame, mask, points, centroid=centroid,
@@ -255,12 +375,6 @@ class Game:
         if self.camera_available:
             self.ui.draw_lighting_bar(
                 self.screen, camera_overlay.get_panel_rect(self.screen),
-                self.gesture_thread.get_lighting(), self.gesture_thread.exclusion_ratio(), calibrating)
-            if calibrating:
-                self.ui.draw_calibration_banner(self.screen, self.gesture_thread.calibration_progress())
-
-        if self.state == "gameover":
-            mins, secs = divmod(int(self.elapsed), 60)
-            self.ui.draw_center_message(
-                self.screen, "GAME OVER",
-                f"Bertahan {mins:02d}:{secs:02d} - {self.player.kills} kill.  Tekan R untuk main lagi.")
+                self.gesture_thread.get_lighting(), self.gesture_thread.exclusion_ratio(),
+                self.calibration_active())
+            self.draw_calibration_overlay(self.screen)

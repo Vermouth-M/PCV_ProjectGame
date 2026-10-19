@@ -56,6 +56,14 @@ class StaticDarkFilter:
             self.excluded_ratio = 0.0
             self.calibrating = True
 
+    def clear(self):
+        """Hapus zona yang sudah dipelajari (mis. setelah mode cermin kamera diganti)."""
+        with self._lock:
+            self.exclusion = None
+            self.excluded_ratio = 0.0
+            self.calibrating = False
+            self._counts = None
+
     @property
     def progress(self):
         if self.calibrating:
