@@ -165,12 +165,6 @@ SKILL_DEFS = {
         "knockback": 260,
         "color": (120, 200, 255),
     },
-    "square": {
-        "name": "Jurus Kotak Perisai",
-        "duration": 3.0,
-        "cooldown": 9.0,
-        "color": (120, 255, 180),
-    },
     "line": {
         "name": "Jurus Garis Tebasan",
         "damage": 42,

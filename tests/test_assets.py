@@ -1,20 +1,3 @@
-"""
-tests/test_assets.py
-======================
-Tes sistem aset (game/assets.py dkk). Gambar uji dibuat SEMENTARA di folder temp
-lalu dihapus; folder assets/ proyek tidak disentuh. Tidak butuh webcam/jendela.
-
-Yang diuji:
-  - pemuat: gambar tunggal, animasi bernomor, celah nomor, prioritas prefix,
-    ekstensi lain, file rusak, penskalaan, flip/rotasi/tint
-  - pemain, musuh, orb, peluru, perisai: tampil dengan sprite DAN fallback vektor
-  - efek 5 jurus: dengan sprite dan fallback vektor
-  - latar tile (seamless) dan fallback grid, ikon jurus di HUD, USE_ASSETS=False
-
-Jalankan:
-    python tests/test_assets.py
-"""
-
 import os
 import shutil
 import sys

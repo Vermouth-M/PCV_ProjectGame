@@ -1,24 +1,3 @@
-"""
-gesture/shape_classifier.py
-=============================
-Mengubah kumpulan titik lintasan tangan (hasil GestureRecorder) menjadi
-nama bentuk: "triangle", "circle", "square", "line", "zigzag", atau
-"unknown".
-
-Semua dilakukan dengan geometri sederhana + cv2.approxPolyDP/convexHull,
-TIDAK menggunakan model machine-learning atau mediapipe apapun.
-
-Alur:
-1. Tolak lintasan yang terlalu pendek/terlalu kecil (noise).
-2. Cek apakah lintasan "tertutup" (titik awal & akhir berdekatan relatif
-   terhadap panjang lintasan) atau "terbuka".
-3a. Kalau tertutup -> hitung convex hull, perkirakan jumlah sudut
-    dengan approxPolyDP, dan hitung circularity untuk membedakan
-    segitiga / kotak / lingkaran.
-3b. Kalau terbuka -> cek kelurusan lewat regresi linear (garis) atau
-    hitung jumlah pembalikan arah (zigzag).
-"""
-
 import math
 
 import cv2
@@ -90,7 +69,7 @@ def _classify_closed(pts):
     if vertices == 3:
         return "triangle"
     if vertices == 4:
-        return "square"
+        return "unknown"
     if circularity > 0.75 or vertices >= 5:
         return "circle"
     return "unknown"
@@ -130,7 +109,6 @@ def _classify_open(pts):
 
 
 def _count_direction_changes(pts, step=2):
-    """Hitung berapa kali arah gerak (sudut antar segmen) berbalik cukup tajam."""
     if len(pts) < (step * 2 + 1):
         return 0
 

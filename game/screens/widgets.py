@@ -1,15 +1,3 @@
-"""
-game/screens/widgets.py
-=========================
-Komponen UI bersama untuk layar menu:
-  - get_font / draw_text / fill_rounded / dim : helper gambar
-  - draw_shape_icon                           : ikon bentuk jurus (vektor)
-  - MenuItem / Menu                           : daftar pilihan (keyboard + mouse)
-
-Kontrol Menu:  W/S atau panah atas/bawah = pilih,  Enter / klik = jalankan,
-               A/D atau panah kiri/kanan = ubah nilai (untuk baris pengaturan).
-"""
-
 import math
 
 import pygame
@@ -87,8 +75,6 @@ def shape_points(kind, center, size, angle=0.0):
     r = size / 2
     if kind == "triangle":
         pts = [(0, -r), (r * 0.95, r * 0.8), (-r * 0.95, r * 0.8)]
-    elif kind == "square":
-        pts = [(-r * 0.8, -r * 0.8), (r * 0.8, -r * 0.8), (r * 0.8, r * 0.8), (-r * 0.8, r * 0.8)]
     elif kind == "line":
         pts = [(-r, r * 0.6), (r, -r * 0.6)]
     elif kind == "zigzag":
