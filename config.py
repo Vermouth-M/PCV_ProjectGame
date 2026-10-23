@@ -63,17 +63,23 @@ ENEMY_SPAWN_RAMP_TIME = 180.0    # detik untuk mencapai kecepatan spawn tercepat
 ENEMY_MAX_ALIVE = 220
 
 ENEMY_STATS = {
-    "basic": {"hp": 20, "speed": 70, "damage": 8, "xp": 5, "radius": 14},
-    "fast":  {"hp": 12, "speed": 140, "damage": 6, "xp": 6, "radius": 11},
-    "tank":  {"hp": 90, "speed": 40, "damage": 16, "xp": 18, "radius": 22},
+    "basic": {"hp": 20, "speed": 70, "damage": 8, "xp": 5, "radius": 14, "score": 10},
+    "fast":  {"hp": 12, "speed": 140, "damage": 6, "xp": 6, "radius": 11, "score": 15},
+    "tank":  {"hp": 90, "speed": 40, "damage": 16, "xp": 18, "radius": 22, "score": 50},
 }
-# Threshold waktu (detik) sebelum tipe musuh tsb mulai dimunculkan
+ENEMY_NAMES = {
+    "basic": "Basic",
+    "fast": "Fast",
+    "tank": "Tank",
+}
 ENEMY_UNLOCK_TIME = {
     "basic": 0,
     "fast": 25,
     "tank": 60,
 }
 
+ENEMY_DIFFICULTY_HP_SCALE_PER_MIN = 0.18
+ENEMY_DIFFICULTY_SPEED_SCALE_PER_MIN = 0.05
 ENEMY_DIFFICULTY_HP_SCALE_PER_MIN = 0.18
 ENEMY_DIFFICULTY_SPEED_SCALE_PER_MIN = 0.05
 

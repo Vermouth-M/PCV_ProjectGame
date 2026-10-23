@@ -92,16 +92,16 @@ class GameOverScreen(Screen):
         game = self.game
         draw_text(surface, "GAME OVER", 58, BAD, (cx, 150), anchor="center", bold=True, shadow=True)
 
-        box = pygame.Rect(cx - 230, 214, 460, 160)
+        box = pygame.Rect(cx - 230, 200, 460, 196)   # sedikit lebih tinggi
         fill_rounded(surface, box, (0, 0, 0, 150), 14, border=(90, 90, 100), border_width=1)
         mins, secs = divmod(int(game.elapsed), 60)
         rows = [("Bertahan", f"{mins:02d}:{secs:02d}"),
-                ("Musuh dikalahkan", str(game.player.kills)),
-                ("Level dicapai", str(game.player.level))]
+        ("Skor", str(game.player.score)),
+        ("Level dicapai", str(game.player.level))]
         for i, (label, value) in enumerate(rows):
-            y = box.y + 34 + i * 44
+            y = box.y + 30 + i * 40
             draw_text(surface, label, 22, TEXT, (box.x + 30, y), anchor="midleft")
             draw_text(surface, value, 26, ACCENT, (box.right - 30, y), anchor="midright", bold=True)
-
-        self.menu.draw(surface)
-        draw_text(surface, "R: main lagi   |   Esc: menu utama", 15, DIM, (cx, 532), anchor="center")
+        breakdown = "   ".join(f"{config.ENEMY_NAMES.get(kind, kind)} x{n}"
+                               for kind, n in game.player.kills_by_type.items())
+        draw_text(surface, breakdown, 16, DIM, (cx, box.bottom - 30), anchor="center")

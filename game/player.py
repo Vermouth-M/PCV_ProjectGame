@@ -27,7 +27,8 @@ class Player:
         self.shield_timer = 0.0
 
         self.attack_cooldown_timer = 0.0
-        self.kills = 0
+        self.score = 0
+        self.kills_by_type = {kind: 0 for kind in config.ENEMY_STATS}
 
         # tampilan sprite (kosong kalau aset tidak ada -> vektor)
         self.moving = False
@@ -110,6 +111,10 @@ class Player:
             self.hp = self.max_hp
             leveled_up = True
         return leveled_up
+
+    def add_kill(self, enemy):
+        self.score += enemy.score_value
+        self.kills_by_type[enemy.kind] = self.kills_by_type.get(enemy.kind, 0) + 1
 
     def is_alive(self):
         return self.hp > 0

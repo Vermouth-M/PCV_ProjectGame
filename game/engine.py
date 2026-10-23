@@ -306,7 +306,7 @@ class Game:
         for e in self.enemies:
             if e.hp <= 0:
                 self.orbs.append(XPOrb(e.x, e.y, e.xp_value))
-                self.player.kills += 1
+                self.player.add_kill(e)
             else:
                 alive.append(e)
         self.enemies = alive

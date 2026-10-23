@@ -32,13 +32,12 @@ class UI:
         lvl_text = self.font_small.render(f"Level {player.level}", True, config.COLOR_TEXT)
         surface.blit(lvl_text, (290, 46))
 
-        # Waktu bertahan & kill count
         mins, secs = divmod(int(elapsed), 60)
         timer_text = self.font_big.render(f"{mins:02d}:{secs:02d}", True, config.COLOR_TEXT)
         surface.blit(timer_text, (surface.get_width() // 2 - timer_text.get_width() // 2, 16))
 
-        kills_text = self.font.render(f"Kills: {player.kills}", True, config.COLOR_TEXT_DIM)
-        surface.blit(kills_text, (surface.get_width() // 2 - kills_text.get_width() // 2, 54))
+        score_text = self.font.render(f"Skor: {player.score}", True, config.COLOR_TEXT_DIM)
+        surface.blit(score_text, (surface.get_width() // 2 - score_text.get_width() // 2, 54))
 
         self._draw_skill_list(surface, skill_manager)
         self._draw_gesture_status(surface, recording, camera_available, skill_manager, glove_visible)

@@ -23,6 +23,7 @@ class Enemy:
         self.speed = stats["speed"] * speed_mult
         self.damage = stats["damage"]
         self.xp_value = stats["xp"]
+        self.score_value = stats["score"]
         self.color = config.ENEMY_COLORS[kind]
 
         self.knockback_x = 0.0
@@ -41,7 +42,6 @@ class Enemy:
         return (self.x, self.y)
 
     def update(self, dt, player_pos):
-        # kalau sedang kena knockback, redam pelan-pelan dulu sebelum jalan lagi
         if abs(self.knockback_x) > 0.5 or abs(self.knockback_y) > 0.5:
             self.x += self.knockback_x * dt
             self.y += self.knockback_y * dt
