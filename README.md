@@ -16,7 +16,6 @@ hitam.
   |---------------|---------------------------------|----------------------------------------|
   | Segitiga      | Jurus Segitiga Pedang           | Tebasan area di depan pemain           |
   | Lingkaran     | Jurus Lingkaran Gelombang Kejut | Ledakan 360° + knockback               |
-  | Kotak         | Jurus Kotak Perisai             | Kebal sementara                        |
   | Garis lurus   | Jurus Garis Tebasan             | Tebasan lurus menembus musuh           |
   | Zigzag        | Jurus Zigzag Petir              | Petir loncat antar musuh               |
 
@@ -26,12 +25,9 @@ hitam.
   ambang "hitam" menyesuaikan terang/redupnya ruangan.
 - Preview kamera besar dengan penanda tracking (zona diabaikan, posisi
   sarung tangan, lintasan gestur).
-- Fallback tombol `1`-`5` untuk memicu jurus tanpa kamera.
+- Fallback tombol `1`-`4` untuk memicu jurus tanpa kamera.
 - **Menu lengkap**: menu utama, Tes Kamera, Cara Bermain, Pengaturan (tersimpan),
   menu Jeda, dan layar Game Over. Bisa dipakai dengan keyboard maupun mouse.
-- **Dukungan aset gambar**: sprite beranimasi, efek jurus, latar tile, dan ikon HUD
-  dimuat dari folder `assets/`. Folder dibiarkan kosong; yang belum ada otomatis
-  memakai gambar vektor, jadi aset bisa ditambah satu per satu.
 
 ## Struktur Folder
 
@@ -195,16 +191,6 @@ dan persentase frame yang sedang diabaikan.
   tidak, tekan `C` lagi sambil tetap diam. Tekan `M` untuk melihat mask hitam
   (putih = terdeteksi hitam, merah = diabaikan).
 
-## Tips Akurasi
-
-- Latar belakang terang & polos; hindari lampu/jendela terang tepat di
-  belakang kepala (membuat kamera menggelapkan seluruh wajah dan rambut).
-- Pakai **satu** sarung tangan hitam, lengan baju yang **terang atau pendek**:
-  lengan baju hitam yang ikut bergerak akan ikut terbaca dan menggeser titik.
-- Gerakkan sarung tangan cukup besar dan tidak terlalu cepat.
-- Kalau bar menunjukkan Ideal tapi sarung tangan tetap tak terbaca, atau
-  benda gelap lain ikut terbaca, atur di `config.py`:
-
 | Pengaturan                      | Fungsi                                                          |
 |---------------------------------|-----------------------------------------------------------------|
 | `BLACK_V_RATIO`, `BLACK_V_OFFSET` | Naikkan jika sarung tangan tak terbaca; turunkan jika terlalu banyak yang terbaca |
@@ -241,34 +227,31 @@ diregangkan/diputar sesuai arah, ikon redup saat cooldown. Hitbox tidak berubah
 mengikuti ukuran gambar. Ukuran tampil dan kecepatan animasi diatur di `config.py`
 (`SPRITE_SCALE`, `ANIM_FPS`, `LIGHTNING_THICKNESS`, `BACKGROUND_TILE_SCALE`, `USE_ASSETS`).
 
-## Menambah Jurus Baru
-
-1. Definisikan di `config.SKILL_DEFS`.
-2. Tambah aturan pengenalan bentuknya di `gesture/shape_classifier.py`.
-3. Buat class efek (turunan `SkillEffect`) di `game/skills.py` dan daftarkan
-   di `SkillManager.trigger()`.
-
-## Menjalankan Tes
-
-Tidak butuh webcam (memakai scene sintetis):
-
-```bash
-python tests/test_shape_classifier.py
-python tests/test_black_tracking.py
-python tests/test_assets.py
-python tests/test_menu.py
-```
-
-## Keterbatasan yang Diketahui
-
-- Tes dibuat dengan scene sintetis. Webcam asli punya auto-exposure,
-  noise, dan white balance sendiri, jadi `BLACK_V_RATIO`/`BLACK_V_OFFSET`
-  mungkin perlu sedikit disetel di perangkatmu.
-- Pembeda rambut mengandalkan rambut yang **relatif diam**. Kalau kepala
-  bergeser lebih dari margin (±12 px di resolusi kerja) setelah kalibrasi,
-  tepi rambut bisa terbaca; tekan `C`.
-- Sarung tangan yang bersinggungan dengan zona rambut terpotong di bagian
-  yang tumpang tindih, sehingga titiknya sedikit bergeser.
-- Di ruangan yang benar-benar gelap, kompensasi tidak bisa menolong karena
-  sarung tangan dan latar sama-sama gelap; bar akan memperingatkan.
-- Hanya melacak satu titik pusat gumpalan hitam, bukan pose/jari.
+## Sudah selesai
+ 
+### Gameplay
+- [x] Pemain bergerak dengan WASD, HP, XP, naik level (HP maksimum +6 dan pulih penuh tiap naik level)
+- [x] Serangan dasar otomatis ke musuh terdekat
+- [x] Tiga tipe musuh: `basic`, `fast`, `tank`, dengan waktu buka berbeda (0 s, 25 s, 60 s)
+- [x] Spawner dengan kesulitan naik seiring waktu (HP dan kecepatan musuh, laju spawn)
+- [x] Orb XP yang tertarik ke pemain
+- [x] 5 jurus: segitiga, lingkaran, garis, zigzag
+- [x] Tombol cadangan `1`-`4` untuk memicu jurus tanpa kamera
+- [x] Mode fokus: musuh melambat saat pemain menggambar jurus
+### Tracking gestur
+- [x] Pelacakan sarung tangan hitam dengan OpenCV murni
+- [x] Kompensasi pencahayaan otomatis
+- [x] Pembeda rambut vs sarung tangan lewat kalibrasi
+- [x] Klasifikasi bentuk gestur (segitiga, lingkaran, kotak, garis, zigzag)
+- [x] Kamera di thread terpisah (anti-lag)
+### Menu dan layar
+- [x] Menu utama, Tes Kamera, Cara Bermain, Pengaturan (tersimpan di `settings.json`)
+- [x] Layar Jeda dan Game Over
+- [x] Kontrol dengan keyboard dan mouse
+### Bug Yang ada
+- [x] Forced Close jika Gerakan Salah
+- [x] Skor system membuat game crash
+- [ ] Line sangat sulit dibuat/terdeteksi
+- [ ] Zigzag Freeze Saat Pertama Kali Digunakan
+### Balancing
+- [ ] Balancing Game Keseluruhan
