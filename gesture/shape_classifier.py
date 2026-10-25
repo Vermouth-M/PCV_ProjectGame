@@ -7,6 +7,13 @@ import config
 
 
 def classify(points):
+    if len(points) < config.GESTURE_LINE_MIN_POINTS:
+        return "unknown"
+
+    pts = np.array(points, dtype=np.float32)
+    if _is_line(pts):
+        return "line"
+
     if len(points) < config.GESTURE_MIN_POINTS:
         return "unknown"
 
@@ -33,13 +40,46 @@ def dominant_direction(points):
     if len(points) < 2:
         return (1.0, 0.0)
     pts = np.array(points, dtype=np.float32)
-    v = pts[-1] - pts[0]
+    k = max(1, len(pts) // 5)                      # rata-rata 20% titik di tiap ujung
+    v = pts[-k:].mean(axis=0) - pts[:k].mean(axis=0)
     norm = float(np.linalg.norm(v))
     if norm < 1e-3:
         return (1.0, 0.0)
     return (float(v[0] / norm), float(v[1] / norm))
 
+def _smooth(pts, window):
+    """Rata-rata bergerak per sumbu (ujung ditahan) untuk meredam getar centroid."""
+    if window <= 1 or len(pts) < window:
+        return pts
+    k = window // 2
+    padded = np.pad(pts, ((k, k), (0, 0)), mode="edge")
+    kernel = np.ones(window, dtype=np.float32) / window
+    return np.stack([np.convolve(padded[:, i], kernel, mode="valid") for i in range(2)], axis=1)
 
+
+def _is_line(pts):
+    """
+    Garis = lintasan (setelah dihaluskan) menyimpang tipis dari garis lurus awal->akhir.
+    Dicek dengan penyederhanaan Ramer-Douglas-Peucker: kalau seluruh lintasan bisa diwakili
+    2 titik dalam toleransi, itu garis. Tidak peka terhadap sudut/arah garis.
+    """
+    n = len(pts)
+    trim = int(0.08 * n)                           # buang sedikit titik di ujung (tangan menetap/terangkat)
+    core = pts[trim:n - trim] if n - 2 * trim >= 3 else pts
+    core = _smooth(core, config.GESTURE_SMOOTH_WINDOW)
+
+    chord = float(np.linalg.norm(core[-1] - core[0]))
+    if chord < config.GESTURE_LINE_MIN_LENGTH:
+        return False
+
+    tolerance = max(config.GESTURE_LINE_TOLERANCE * chord, config.GESTURE_LINE_MIN_TOLERANCE_PX)
+    simplified = cv2.approxPolyDP(core.reshape(-1, 1, 2).astype(np.float32), tolerance, False)
+    if len(simplified) != 2:
+        return False
+    return _path_length(core) <= chord * config.GESTURE_LINE_MAX_PATH_RATIO     # bukan bolak-balik
+
+
+# ---------------------------------------------------------------------------
 # ---------------------------------------------------------------------------
 def _path_length(pts):
     diffs = np.diff(pts, axis=0)
@@ -77,33 +117,9 @@ def _classify_closed(pts):
 
 # ---------------------------------------------------------------------------
 def _classify_open(pts):
-    xs, ys = pts[:, 0], pts[:, 1]
-    x_range = float(xs.max() - xs.min())
-    y_range = float(ys.max() - ys.min())
-
-    if x_range >= y_range:
-        coeffs = np.polyfit(xs, ys, 1)
-        predicted = np.polyval(coeffs, xs)
-        residual = ys
-    else:
-        coeffs = np.polyfit(ys, xs, 1)
-        predicted = np.polyval(coeffs, ys)
-        residual = xs
-
-    rmse = math.sqrt(float(np.mean((residual - predicted) ** 2)))
-    span = max(x_range, y_range, 1.0)
-    straightness = rmse / span
-
-    # Prioritaskan deteksi zigzag: garis lurus asli nyaris tidak pernah
-    # punya banyak pembalikan arah tajam, sedangkan zigzag yang cenderung
-    # naik-turun simetris kadang kebetulan punya residual regresi linear
-    # yang rendah juga (nilai straightness bisa menipu). Jadi jumlah
-    # pembalikan arah dicek dulu sebelum menyimpulkan "line".
+    # Garis sudah ditangani _is_line() di classify(); di sini tinggal zigzag.
     if _count_direction_changes(pts) >= 2:
         return "zigzag"
-
-    if straightness < 0.12:
-        return "line"
 
     return "unknown"
 

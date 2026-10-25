@@ -147,6 +147,12 @@ GESTURE_MIN_MOVE_DIST = 3          # jarak minimal antar titik yg direkam (px)
 
 GESTURE_CLOSED_LOOP_RATIO = 0.35   # first-last dist / path length -> dianggap "tertutup"
 GESTURE_APPROX_EPSILON_RATIO = 0.03
+GESTURE_LINE_MIN_POINTS = 3        # garis cukup beberapa titik (sapuan cepat = sedikit titik)
+GESTURE_LINE_MIN_LENGTH = 35       # panjang minimal garis (px, di frame kamera)
+GESTURE_LINE_TOLERANCE = 0.10      # simpangan maks dari garis lurus, relatif terhadap panjang garis
+GESTURE_LINE_MIN_TOLERANCE_PX = 5  # batas bawah simpangan (px) agar getar centroid tidak dihitung
+GESTURE_LINE_MAX_PATH_RATIO = 1.5  # panjang lintasan / panjang garis; di atas ini = bolak-balik
+GESTURE_SMOOTH_WINDOW = 5          # jendela perataan titik sebelum dicek apakah garis
 
 GESTURE_TIME_SCALE_WHILE_DRAWING = 0.35   # slow-mo musuh saat menggambar jurus (mode fokus)
 
