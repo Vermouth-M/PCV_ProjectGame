@@ -1,5 +1,3 @@
-"""game/background.py -- latar yang ikut bergeser mengikuti kamera."""
-
 import pygame
 
 import config

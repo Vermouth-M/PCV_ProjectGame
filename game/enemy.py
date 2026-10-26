@@ -32,7 +32,8 @@ class Enemy:
 
         # tampilan sprite (kosong kalau aset tidak ada -> vektor)
         self.face_left = False
-        size = int(self.radius * 2 * config.SPRITE_SCALE["enemy"])
+        scale = config.ENEMY_SPRITE_SCALE.get(kind, config.SPRITE_SCALE["enemy"])
+        size = int(self.radius * 2 * scale)
         frames = assets.get().frames(f"sprites/enemies/{kind}_walk",
                                      f"sprites/enemies/{kind}", size=size)
         self.anim = Animation(frames, config.ANIM_FPS["enemy"], offset=random.random() * 2.0)

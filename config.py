@@ -14,7 +14,7 @@ import os
 SCREEN_WIDTH = 1640
 SCREEN_HEIGHT = 720
 FPS = 60
-GAME_TITLE = "Vampire Gesture Survivor"
+GAME_TITLE = "Mecha Demon Slayer"
 
 # Warna (R, G, B)
 COLOR_BG = (18, 18, 24)
@@ -206,7 +206,7 @@ ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 # Ukuran sprite = diameter hitbox x faktor ini (sisi terpanjang gambar disesuaikan,
 # rasio aspek dipertahankan). Naikkan/turunkan kalau sprite terasa terlalu kecil/besar.
 SPRITE_SCALE = {"player": 2.2, "enemy": 2.0, "xp_orb": 3.0, "projectile": 3.0}
-
+ENEMY_SPRITE_SCALE = {"tank": 8.0}
 # Kecepatan animasi (frame per detik)
 ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8}
 
@@ -222,7 +222,7 @@ UI_FRAME = 6                # tebal bingkai logam
 UI_TOP_ROW_HEIGHT = 160     # tinggi baris atas (health + potret)
 UI_HEALTH_WIDTH = 250       # lebar kotak health (potret mengisi sisanya)
 
-PLAYER_NAME = "VAMP_LORD"   # nama di bawah potret
+PLAYER_NAME = "Deadbeat"   # nama di bawah potret
 
 SKILL_SLOT_MAX = 90         # ukuran maksimal kotak skill
 SKILL_SHORT_NAMES = {
@@ -235,7 +235,7 @@ SKILL_SHORT_NAMES = {
 
 # (batas rasio HP minimal, label, BPM, warna garis), dicek dari atas ke bawah
 ECG_STATUS = [
-    (0.60, "FINE",    60,  (225, 45, 45)),
+    (0.60, "FINE",    60,  (45, 255, 45)),
     (0.30, "CAUTION", 95,  (255, 150, 40)),
     (0.00, "DANGER",  150, (255, 50, 50)),
 ]
