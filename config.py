@@ -106,10 +106,6 @@ CAMERA_PANEL_ALPHA = 225      # 0-255, makin kecil makin transparan
 # ---------------------------------------------------------------------------
 # Tracking SARUNG TANGAN HITAM (OpenCV murni; game ini HANYA melacak warna)
 # ---------------------------------------------------------------------------
-# --- Ambang "hitam" yang menyesuaikan pencahayaan secara otomatis ------------
-# level = persentil ke-75 kanal V (kecerahan) frame, skala 0-255, dihaluskan.
-# v_max = BLACK_V_RATIO * level + BLACK_V_OFFSET, lalu dibatasi MIN..MAX.
-# Ruangan terang -> ambang naik; ruangan redup -> ambang turun. Otomatis.
 BLACK_V_RATIO = 0.38
 BLACK_V_OFFSET = 12
 BLACK_V_MIN = 28
@@ -217,3 +213,4 @@ ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8}
 LIGHTNING_THICKNESS = 30        # tebal sprite petir pada tiap sambungan (px)
 BACKGROUND_TILE_SCALE = 1.0     # skala tile latar (1.0 = ukuran asli gambar)
 SKILL_ICON_SIZE = 20            # ukuran ikon jurus di HUD (px)
+ASSET_MAX_SIDE = 1024 

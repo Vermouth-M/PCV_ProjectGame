@@ -1,30 +1,6 @@
-"""
-game/assets.py
-================
-Pemuat aset gambar (sprite, efek, latar, ikon) dari folder `assets/`.
-
-PRINSIP: FOLDER ASSETS BOLEH KOSONG. Tiap bagian game meminta aset lewat nama
-(mis. "sprites/player/walk"). Kalau file-nya tidak ada, manajer mengembalikan
-[] / None dan pemanggil memakai gambar vektor bawaan. Jadi aset bisa ditambah
-satu per satu tanpa membuat game rusak.
-
-Konvensi nama (tanpa ekstensi; png, webp, jpg, jpeg dikenali):
-    nama.png                      -> gambar tunggal
-    nama_0.png, nama_1.png, ...   -> animasi, berurutan dari 0
-                                     (berhenti di nomor yang bolong)
-
-Daftar lengkap aset yang dikenali game ada di MANIFEST di bawah,
-di assets/README.md, dan bisa dicek lewat `python tools/check_assets.py`.
-
-Pemakaian umum:
-    from game import assets
-    assets.init()                      # sekali, setelah pygame.display.set_mode()
-    frames = assets.get().frames("sprites/player/walk", size=70)
-"""
-
 import math
 import os
-
+import time
 import pygame
 
 import config
@@ -67,6 +43,8 @@ class AssetManager:
         self._tint = {}
         self._dim = {}
         self._warned = set()
+        self._raw = {}           
+        self.preload_ms = 0.0
 
     # ------------------------------------------------------------------
     # Pencarian file
@@ -80,7 +58,6 @@ class AssetManager:
         return None
 
     def find_files(self, prefix):
-        """Daftar path untuk satu prefix: animasi bernomor, atau gambar tunggal, atau []."""
         if not self.enabled:
             return []
         if prefix in self._files:
@@ -108,17 +85,23 @@ class AssetManager:
             self._warned.add(path)
             print(f"[assets] PERINGATAN: gagal memuat '{path}' ({exc}); memakai gambar vektor.")
 
-    def _load(self, path):
+    def _load(self, path, cap=True):
+        if path in self._raw:
+            return self._raw[path]
         try:
             surf = pygame.image.load(path)
         except (pygame.error, OSError) as exc:
             self._warn(path, exc)
+            self._raw[path] = None
             return None
         try:
             if pygame.display.get_surface() is not None:
                 surf = surf.convert_alpha()
         except pygame.error:
             pass
+        if cap and config.ASSET_MAX_SIDE and max(surf.get_size()) > config.ASSET_MAX_SIDE:
+            surf = self.resize(surf, size=config.ASSET_MAX_SIDE)
+        self._raw[path] = surf
         return surf
 
     @staticmethod
@@ -156,7 +139,7 @@ class AssetManager:
 
         result = []
         for prefix in prefixes:
-            loaded = [self._load(p) for p in self.find_files(prefix)]
+            loaded = [self._load(p, cap=not prefix.startswith("backgrounds/")) for p in self.find_files(prefix)]
             loaded = [s for s in loaded if s is not None]
             if loaded:
                 result = [self.resize(s, size, scale) for s in loaded]
@@ -168,10 +151,23 @@ class AssetManager:
         """Frame pertama saja, atau None kalau aset tidak ada."""
         fr = self.frames(*prefixes, size=size, scale=scale)
         return fr[0] if fr else None
+    def preload(self):
+        """
+        Decode SEMUA aset yang ada sekarang (di awal), bukan saat pertama kali dipakai.
+        Tanpa ini, jurus/musuh yang baru pertama muncul membaca disk + decode PNG di tengah
+        permainan (tersendat/freeze sesaat). Return jumlah file yang berhasil dimuat.
+        """
+        if not self.enabled:
+            return 0
+        start, loaded = time.perf_counter(), 0
+        for _label, prefixes, _hint in MANIFEST:
+            for prefix in prefixes:
+                for path in self.find_files(prefix):
+                    if self._load(path, cap=not prefix.startswith("backgrounds/")) is not None:
+                        loaded += 1
+        self.preload_ms = (time.perf_counter() - start) * 1000.0
+        return loaded
 
-    # ------------------------------------------------------------------
-    # Transformasi (di-cache; sumbernya selalu surface bersama yang jumlahnya terbatas)
-    # ------------------------------------------------------------------
     def flipped(self, surf):
         entry = self._flip.get(id(surf))
         if entry is None:
@@ -249,7 +245,8 @@ class AssetManager:
             return "[assets] dinonaktifkan (config.USE_ASSETS = False): semua gambar memakai vektor."
         rows = self.status()
         have = sum(1 for r in rows if r[2] > 0)
-        return f"[assets] {have}/{len(rows)} aset ditemukan di '{self.root}' (sisanya memakai gambar vektor)."
+        return (f"[assets] {have}/{len(rows)} aset ditemukan di '{self.root}' "
+                f"(sisanya memakai gambar vektor). Dimuat dalam {self.preload_ms:.0f} ms.")
 
 
 # ----------------------------------------------------------------------
@@ -263,6 +260,7 @@ def init(root=None):
     """Panggil sekali setelah pygame.display.set_mode() (butuh display untuk convert_alpha)."""
     global _manager
     _manager = AssetManager(root=root, enabled=config.USE_ASSETS)
+    _manager.preload()          # muat semua aset SEKARANG, bukan saat jurus pertama keluar
     return _manager
 
 
