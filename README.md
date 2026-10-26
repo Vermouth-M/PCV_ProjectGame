@@ -253,6 +253,6 @@ mengikuti ukuran gambar. Ukuran tampil dan kecepatan animasi diatur di `config.p
 - [x] Skor system membuat game crash
 - [x] Line sangat sulit dibuat/terdeteksi
 - [x] Zigzag Freeze Saat Pertama Kali Digunakan
-- [ ] Sprite tidak ada saat skill nyala(untuk line dan slash)
+- [x] Sprite tidak ada saat skill nyala(untuk line dan slash)
 ### Balancing
 - [x] Balancing Game Keseluruhan
