@@ -12,6 +12,7 @@ class UI:
         self.font = pygame.font.SysFont("consolas", 18)
         self.font_big = pygame.font.SysFont("consolas", 34, bold=True)
         self.font_small = pygame.font.SysFont("consolas", 14)
+        self.font_hud = pygame.font.SysFont("consolas", 24, bold=True)
 
     def draw_bar(self, surface, x, y, w, h, ratio, bg_color, fg_color, border=(0, 0, 0)):
         pygame.draw.rect(surface, bg_color, (x, y, w, h))
@@ -20,27 +21,27 @@ class UI:
 
     def draw_hud(self, surface, player, elapsed, skill_manager, recording, camera_available,
                  glove_visible=True):
-        # HP
-        self.draw_bar(surface, 20, 20, 260, 22, player.hp / player.max_hp,
-                      config.COLOR_HP_BAR_BG, config.COLOR_HP_BAR_FG)
-        hp_text = self.font_small.render(f"HP {int(max(0, player.hp))}/{player.max_hp}", True, config.COLOR_TEXT)
-        surface.blit(hp_text, (28, 24))
-
-        # XP
-        self.draw_bar(surface, 20, 48, 260, 14, player.xp / player.xp_to_next,
+        """HUD di dalam area game: XP, waktu & kills (kanan atas), status gestur.
+        HP dan skill digambar di kolom kanan (game/sidebar.py)."""
+        # XP + level (kiri atas)
+        self.draw_bar(surface, 20, 20, 260, 14, player.xp / player.xp_to_next,
                       config.COLOR_XP_BAR_BG, config.COLOR_XP_BAR_FG)
         lvl_text = self.font_small.render(f"Level {player.level}", True, config.COLOR_TEXT)
-        surface.blit(lvl_text, (290, 46))
+        surface.blit(lvl_text, (290, 18))
 
+        # waktu & kills (kanan atas)
         mins, secs = divmod(int(elapsed), 60)
-        timer_text = self.font_big.render(f"{mins:02d}:{secs:02d}", True, config.COLOR_TEXT)
-        surface.blit(timer_text, (surface.get_width() // 2 - timer_text.get_width() // 2, 16))
+        self._blit_right(surface, f"TIME: {mins:02d}:{secs:02d}", 20, config.COLOR_TEXT)
+        self._blit_right(surface, f"SKOR: {player.score}", 46, config.COLOR_TEXT)
 
-        score_text = self.font.render(f"Skor: {player.score}", True, config.COLOR_TEXT_DIM)
-        surface.blit(score_text, (surface.get_width() // 2 - score_text.get_width() // 2, 54))
-
-        self._draw_skill_list(surface, skill_manager)
         self._draw_gesture_status(surface, recording, camera_available, skill_manager, glove_visible)
+
+    def _blit_right(self, surface, text, y, color):
+        shadow = self.font_hud.render(text, True, (0, 0, 0))
+        label = self.font_hud.render(text, True, color)
+        x = surface.get_width() - 20 - label.get_width()
+        surface.blit(shadow, (x + 1, y + 1))
+        surface.blit(label, (x, y))
 
     def _draw_skill_list(self, surface, skill_manager):
         manager = assets.get()
@@ -65,7 +66,7 @@ class UI:
 
     def _draw_gesture_status(self, surface, recording, camera_available, skill_manager,
                              glove_visible=True):
-        x, y = 20, 80
+        x, y = 20, 48
         if not camera_available:
             msg = "Kamera tidak terdeteksi - gestur nonaktif (cek README, coba tombol 1-5)"
             color = (255, 120, 120)

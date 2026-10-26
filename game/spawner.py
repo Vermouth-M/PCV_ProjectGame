@@ -35,7 +35,7 @@ class Spawner:
         kind = random.choice(self._available_kinds())
 
         angle = random.uniform(0, math.tau)
-        radius = max(config.SCREEN_WIDTH, config.SCREEN_HEIGHT) / 2 + config.ENEMY_SPAWN_MARGIN
+        radius = max(config.GAME_AREA_WIDTH, config.SCREEN_HEIGHT) / 2 + config.ENEMY_SPAWN_MARGIN
         x = player_pos[0] + math.cos(angle) * radius
         y = player_pos[1] + math.sin(angle) * radius
 

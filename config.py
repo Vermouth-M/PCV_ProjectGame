@@ -11,8 +11,8 @@ import os
 # ---------------------------------------------------------------------------
 # Layar & Umum
 # ---------------------------------------------------------------------------
-SCREEN_WIDTH = 1000
-SCREEN_HEIGHT = 700
+SCREEN_WIDTH = 1640
+SCREEN_HEIGHT = 720
 FPS = 60
 GAME_TITLE = "Vampire Gesture Survivor"
 
@@ -212,5 +212,31 @@ ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8}
 
 LIGHTNING_THICKNESS = 30        # tebal sprite petir pada tiap sambungan (px)
 BACKGROUND_TILE_SCALE = 1.0     # skala tile latar (1.0 = ukuran asli gambar)
-SKILL_ICON_SIZE = 20            # ukuran ikon jurus di HUD (px)
 ASSET_MAX_SIDE = 1024 
+# ---------------------------------------------------------------------------
+# Tata letak UI: area game di kiri, kolom info di kanan
+# ---------------------------------------------------------------------------
+GAME_AREA_WIDTH = 1200      # lebar area bermain; sisanya jadi kolom kanan
+UI_PAD = 8                  # jarak antar kotak
+UI_FRAME = 6                # tebal bingkai logam
+UI_TOP_ROW_HEIGHT = 160     # tinggi baris atas (health + potret)
+UI_HEALTH_WIDTH = 250       # lebar kotak health (potret mengisi sisanya)
+
+PLAYER_NAME = "VAMP_LORD"   # nama di bawah potret
+
+SKILL_SLOT_MAX = 90         # ukuran maksimal kotak skill
+SKILL_SHORT_NAMES = {
+    "triangle": "SEGITIGA",
+    "circle": "LINGKARAN",
+    "square": "KOTAK",
+    "line": "GARIS",
+    "zigzag": "ZIGZAG",
+}
+
+# (batas rasio HP minimal, label, BPM, warna garis), dicek dari atas ke bawah
+ECG_STATUS = [
+    (0.60, "FINE",    60,  (225, 45, 45)),
+    (0.30, "CAUTION", 95,  (255, 150, 40)),
+    (0.00, "DANGER",  150, (255, 50, 50)),
+]
+ECG_PIXELS_PER_BEAT = 120   # jarak antar denyut di layar

@@ -1,7 +1,7 @@
 import pygame
 
 import config
-from game import assets, background, camera_overlay, settings
+from game import assets, background, camera_overlay, layout, settings
 from game.pickups import XPOrb
 from game.player import Player
 from game.projectile import Projectile
@@ -11,6 +11,7 @@ from game.screens.main_menu import MainMenuScreen
 from game.screens.overlays import GameOverScreen, PauseScreen
 from game.screens.settings_screen import SettingsScreen
 from game.skills import SkillManager
+from game.sidebar import Sidebar
 from game.spawner import Spawner
 from game.ui import UI
 from game.utils import circle_collide, distance
@@ -31,6 +32,7 @@ class Game:
         print(assets.get().summary())
 
         self.ui = UI()
+        self.sidebar = Sidebar()
         self.running = True
 
         self.gesture_thread = GestureThread()
@@ -168,6 +170,7 @@ class Game:
         self._tick_calibration_prepare(dt)
         if self.state == "playing":
             self._update_play(dt)
+            self.sidebar.update(dt, self.player)
         else:
             screen = self.screens.get(self.state)
             if screen is not None:
@@ -324,39 +327,49 @@ class Game:
     # ------------------------------------------------------------------
     def _draw_world(self, show_camera=True):
         self.screen.fill(config.COLOR_BG)
-        cam_x = self.player.x - config.SCREEN_WIDTH / 2
-        cam_y = self.player.y - config.SCREEN_HEIGHT / 2
 
-        background.draw_background(self.screen, cam_x, cam_y)
+        # dunia hanya digambar di area game (kiri); kolom kanan diisi sidebar
+        game_surf = self.screen.subsurface(layout.GAME_RECT)
+        cam_x = self.player.x - layout.GAME_RECT.width / 2
+        cam_y = self.player.y - layout.GAME_RECT.height / 2
+
+        background.draw_background(game_surf, cam_x, cam_y)
 
         for orb in self.orbs:
-            orb.draw(self.screen, cam_x, cam_y)
+            orb.draw(game_surf, cam_x, cam_y)
         for e in self.enemies:
-            e.draw(self.screen, cam_x, cam_y)
+            e.draw(game_surf, cam_x, cam_y)
         for effect in self.skills.effects:
-            effect.draw(self.screen, cam_x, cam_y)
+            effect.draw(game_surf, cam_x, cam_y)
         for p in self.projectiles:
-            p.draw(self.screen, cam_x, cam_y)
+            p.draw(game_surf, cam_x, cam_y)
 
-        self.player.draw(self.screen, cam_x, cam_y)
+        self.player.draw(game_surf, cam_x, cam_y)
 
         frame, mask, centroid = self.gesture_thread.get_preview()
         points = self.gesture_thread.current_points()
 
-        self.ui.draw_hud(self.screen, self.player, self.elapsed, self.skills,
-                          self.gesture_thread.is_recording(), self.camera_available,
-                          glove_visible=centroid is not None)
+        self.ui.draw_hud(game_surf, self.player, self.elapsed, self.skills,
+                         self.gesture_thread.is_recording(), self.camera_available,
+                         glove_visible=centroid is not None)
+
+        # kolom kanan: health, potret, skill, bingkai webcam
+        self.sidebar.draw(self.screen, self.player, self.skills)
 
         if not show_camera:
-            return
+            return    # di balik Jeda/Game Over: bingkai webcam dibiarkan kosong
 
         camera_overlay.draw_camera_panel(
             self.screen, frame, mask, points, centroid=centroid,
-            exclusion=self.gesture_thread.get_exclusion(), show_mask=self.show_mask)
+            exclusion=self.gesture_thread.get_exclusion(), show_mask=self.show_mask,
+            rect=layout.WEBCAM_VIDEO, alpha=255)
+        self.sidebar.draw_live_badge(self.screen, self.camera_available)
 
         if self.camera_available:
+            # bar pencahayaan dipindah ke pojok kanan-bawah area game
+            light_rect = pygame.Rect(layout.GAME_RECT.right - 408, layout.GAME_RECT.bottom - 8, 400, 0)
             self.ui.draw_lighting_bar(
-                self.screen, camera_overlay.get_panel_rect(self.screen),
+                self.screen, light_rect,
                 self.gesture_thread.get_lighting(), self.gesture_thread.exclusion_ratio(),
                 self.calibration_active())
-            self.draw_calibration_overlay(self.screen)
+            self.draw_calibration_overlay(game_surf)
