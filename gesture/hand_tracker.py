@@ -1,21 +1,3 @@
-"""
-gesture/hand_tracker.py
-========================
-Melacak SARUNG TANGAN HITAM memakai OpenCV murni (tanpa mediapipe, tanpa
-machine learning). Game ini HANYA melacak warna: gumpalan hitam terbesar yang
-lolos beberapa filter. Tiga masalah praktis dan solusinya:
-
-1. Pencahayaan beda tiap ruangan
-   -> ambang "hitam" dihitung otomatis dari kecerahan scene
-      (gesture/lighting.py), bukan angka tetap.
-2. Rambut juga hitam
-   -> area hitam yang DIAM saat kalibrasi dipelajari lalu diabaikan
-      (gesture/background_filter.py). Sarung tangan yang bergerak tidak ikut.
-3. Gumpalan hitam lain yang kebetulan lolos
-   -> disaring lewat ukuran, kepadatan bentuk (solidity), dan kontinuitas
-      posisi dari frame sebelumnya.
-"""
-
 import time
 
 import cv2

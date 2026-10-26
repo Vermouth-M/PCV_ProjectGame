@@ -1,10 +1,3 @@
-"""
-gesture/gesture_recorder.py
-============================
-Menyimpan lintasan (path) titik-titik posisi tangan selama pemain
-menahan tombol SPASI (mode "siap/rekam jurus").
-"""
-
 import math
 import time
 

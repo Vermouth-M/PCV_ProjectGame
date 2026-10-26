@@ -1,21 +1,3 @@
-"""
-gesture/lighting.py
-=====================
-Memantau kondisi pencahayaan dan menghitung ambang "hitam" yang menyesuaikan
-diri secara otomatis (kompensasi pencahayaan).
-
-Masalahnya: sarung tangan hitam tidak selalu tampak sama hitamnya. Di ruangan
-terang ia bisa terbaca V=60, di ruangan redup V=20. Ambang tetap (mis. V<70)
-akan gagal -- di ruangan redup seluruh dinding ikut dianggap hitam.
-
-Solusi: ambang diturunkan dari kecerahan scene.
-    level = persentil ke-75 kanal V frame (permukaan yang terang), dihaluskan
-    v_max = BLACK_V_RATIO * level + BLACK_V_OFFSET   (dibatasi MIN..MAX)
-Sarung tangan memantulkan cahaya jauh lebih sedikit daripada dinding, jadi
-kecerahannya kira-kira proporsional dengan level scene, ditambah sedikit
-offset karena noise/black-level sensor kamera.
-"""
-
 from dataclasses import dataclass
 
 import numpy as np

@@ -1,20 +1,3 @@
-"""
-gesture/gesture_thread.py
-===========================
-Menjalankan capture kamera + tracking sarung tangan di THREAD terpisah supaya
-tidak bikin lag game loop pygame (baca kamera relatif lambat dibanding 60 FPS).
-
-Main thread (pygame) cukup:
-    gt = GestureThread()
-    gt.start()
-    gt.start_calibration()       # pelajari rambut/benda hitam diam (awal game / tombol C)
-    ...
-    gt.begin_recording()         # saat SPASI ditekan
-    points = gt.end_recording()  # saat SPASI dilepas
-    shape = shape_classifier.classify(points)
-    gt.get_lighting()            # untuk bar pencahayaan di HUD
-"""
-
 import threading
 import time
 

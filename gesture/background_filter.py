@@ -1,26 +1,3 @@
-"""
-gesture/background_filter.py
-==============================
-Membedakan SARUNG TANGAN hitam dari RAMBUT hitam (dan benda hitam diam lain
-seperti bezel monitor atau sandaran kursi).
-
-Warna keduanya sama-sama hitam, jadi tidak bisa dibedakan lewat warna saja.
-Pembedanya adalah GERAKAN: rambut (kepala) relatif diam, sarung tangan
-bergerak. Caranya:
-
-1. Saat "kalibrasi" (otomatis di awal game, atau tekan C), kita kumpulkan
-   mask hitam selama beberapa puluh frame.
-2. Piksel yang hitam di >= GESTURE_CALIB_PERSISTENCE (70%) frame dianggap
-   benda hitam DIAM -> masuk "zona diabaikan" (exclusion), dilebarkan sedikit
-   supaya kepala yang sedikit bergoyang tetap tertutup.
-3. Sesudahnya, hitam di dalam zona itu tidak pernah dianggap sarung tangan.
-
-Sarung tangan yang digerakkan / dijauhkan saat kalibrasi tidak hitam terus-
-menerus di piksel yang sama, jadi tidak ikut terpelajar. Sebaliknya, kalau
-sarung tangan DIAM di satu tempat selama kalibrasi, ia ikut diabaikan di
-tempat itu (itu sebabnya instruksinya: jauhkan atau gerakkan sarung tangan).
-"""
-
 import threading
 import time
 
