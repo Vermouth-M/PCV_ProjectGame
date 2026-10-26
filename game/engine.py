@@ -1,7 +1,7 @@
 import pygame
 
 import config
-from game import assets, background, camera_overlay, layout, settings
+from game import assets, background, camera_overlay, layout, settings, audio
 from game.pickups import XPOrb
 from game.player import Player
 from game.projectile import Projectile
@@ -30,6 +30,7 @@ class Game:
 
         assets.init()   # sprite/efek/latar dari folder assets/ (kosong = gambar vektor)
         print(assets.get().summary())
+        audio.init()  
 
         self.ui = UI()
         self.sidebar = Sidebar()
@@ -69,6 +70,7 @@ class Game:
         if old is not None:
             old.on_exit()
         self.state = new_state
+        audio.get().on_state(new_state)
         pygame.mouse.set_visible(new_state != "playing")
         screen = self.screens.get(new_state)
         if screen is not None:
@@ -302,7 +304,9 @@ class Game:
         # kontak musuh vs pemain
         for e in self.enemies:
             if circle_collide(self.player.pos, self.player.radius, e.pos, e.radius):
-                self.player.take_damage(e.damage)
+                if self.player.take_damage(e.damage):
+                    if self.player.is_alive():
+                        audio.get().play_sfx("enemy_hit")
 
     def _cleanup_dead_enemies(self):
         alive = []

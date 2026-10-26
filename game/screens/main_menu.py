@@ -24,7 +24,7 @@ class MainMenuScreen(Screen):
             MenuItem("Cara Bermain", lambda: game.set_state("howto")),
             MenuItem("Pengaturan", lambda: game.open_settings("menu")),
             MenuItem("Keluar", game.quit),
-        ], cx, 262)
+        ], cx, 262, click_sfx="ui_click")
 
         self.t = 0.0
         rng = random.Random(11)
@@ -69,8 +69,8 @@ class MainMenuScreen(Screen):
         pulse = 0.5 + 0.5 * math.sin(self.t * 2.2)
         title_color = tuple(int(a + (255 - a) * pulse * 0.45) for a in ACCENT)
         cx = config.SCREEN_WIDTH // 2
-        draw_text(surface, "VAMPIRE GESTURE", 54, title_color, (cx, 92), anchor="center", bold=True, shadow=True)
-        draw_text(surface, "SURVIVOR", 54, title_color, (cx, 150), anchor="center", bold=True, shadow=True)
+        draw_text(surface, "Mecha Demon", 54, title_color, (cx, 92), anchor="center", bold=True, shadow=True)
+        draw_text(surface, "Slayer", 54, title_color, (cx, 150), anchor="center", bold=True, shadow=True)
         draw_text(surface, "Gambar jurusmu di udara dengan sarung tangan hitam", 19, DIM,
                   (cx, 204), anchor="center")
 

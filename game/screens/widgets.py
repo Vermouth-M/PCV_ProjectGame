@@ -1,7 +1,6 @@
 import math
-
+from game import audio
 import pygame
-
 import config
 
 ACCENT = (255, 210, 90)
@@ -125,9 +124,11 @@ class MenuItem:
 
 
 class Menu:
-    def __init__(self, items, center_x, top, row_w=460, row_h=48, gap=10, font_size=26):
+    def __init__(self, items, center_x, top, row_w=460, row_h=48, gap=10, font_size=26,
+                 click_sfx=None):
         self.items = items
         self.font_size = font_size
+        self.click_sfx = click_sfx 
         self.rects = [
             pygame.Rect(center_x - row_w // 2, top + i * (row_h + gap), row_w, row_h)
             for i in range(len(items))
@@ -156,6 +157,8 @@ class Menu:
     def activate(self):
         item = self.selected
         if item.is_enabled() and item.action:
+            if self.click_sfx:
+                audio.get().play_sfx(self.click_sfx)
             item.action()
 
     def _call(self, name):

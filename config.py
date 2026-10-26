@@ -202,7 +202,9 @@ DEBUG_KEYBOARD_GESTURE_FALLBACK = True
 # ---------------------------------------------------------------------------
 USE_ASSETS = True    # False = paksa semua gambar vektor (abaikan folder assets/)
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-
+# Volume suara (0.0 - 1.0)
+MUSIC_VOLUME = 0.5
+SFX_VOLUME = 0.8
 # Ukuran sprite = diameter hitbox x faktor ini (sisi terpanjang gambar disesuaikan,
 # rasio aspek dipertahankan). Naikkan/turunkan kalau sprite terasa terlalu kecil/besar.
 SPRITE_SCALE = {"player": 2.2, "enemy": 2.0, "xp_orb": 3.0, "projectile": 3.0}

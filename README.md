@@ -1,4 +1,4 @@
-# Vampire Gesture Survivor
+# Mecha Demon Slayer
 
 Game bergaya *Vampire Survivors* dengan **Pygame**. Twist-nya: kamu
 mengeluarkan **jurus** dengan menggambar pola di udara memakai
@@ -10,7 +10,7 @@ hitam.
 
 - Survival ala Vampire Survivors: musuh makin kuat seiring waktu, kumpulkan
   XP, naik level. Gerak dengan **WASD**.
-- **5 jurus**, dipicu dengan menahan **SPASI** lalu menggambar bentuk:
+- **4 jurus**, dipicu dengan menahan **SPASI** lalu menggambar bentuk:
 
   | Bentuk        | Jurus                           | Efek                                   |
   |---------------|---------------------------------|----------------------------------------|
@@ -32,7 +32,7 @@ hitam.
 ## Struktur Folder
 
 ```
-vampire_gesture_survivor/
+PCV_ProjectGame/
 ├── main.py                      # entry point
 ├── config.py                    # semua konstanta (gameplay, tracking, aset)
 ├── requirements.txt
@@ -89,8 +89,8 @@ Butuh Python 3.9+ dan webcam.
 
 ```bash
 conda activate opencv_env
-cd vampire_gesture_survivor
-pip install pygame          # opencv-python & numpy biasanya sudah ada di env
+cd PCV_ProjectGame
+pip install pygame
 python main.py
 ```
 

@@ -1,8 +1,7 @@
 import math
 import pygame
-
 import config
-from game import assets
+from game import assets, audio
 from game.assets import AssetManager
 from game.utils import distance
 
@@ -42,10 +41,22 @@ class SkillEffect:
         return True
 
     def _draw_sprite(self, surface, cam_x, cam_y):
+        if not self._sprites:
+            return
+
         n = len(self._sprites)
-        sprite = self._sprites[min(n - 1, int(self.progress() * n))]    # frame berganti sepanjang durasi
+        # Batasi indeks agar selalu berada dalam rentang frame yang tersedia.
+        frame_index = min(n - 1, int(self.progress() * n))
+        sprite = self._sprites[frame_index]
         sprite.set_alpha(int(255 * _effect_alpha(self.progress(), n > 1)))
-        rect = sprite.get_rect(center=(self._center[0] - cam_x, self._center[1] - cam_y))
+
+        # Posisikan sprite berdasarkan koordinat dunia dan offset kamera.
+        rect = sprite.get_rect(
+            center=(int(self._center[0] - cam_x), int(self._center[1] - cam_y))
+        )
+
+        # BUG FIX: sebelumnya sprite tidak pernah di-blit ke layar.
+        surface.blit(sprite, rect)
 
 
 class TriangleSlash(SkillEffect):
@@ -227,6 +238,7 @@ class SkillManager:
         cfg = config.SKILL_DEFS[shape]
         self.cooldowns[shape] = cfg["cooldown"]
         self.set_message(f"{cfg['name']}!")
+        audio.get().play_sfx(f"skill_{shape}")
 
         if shape == "triangle":
             self._do_triangle(cfg, player, enemies)
