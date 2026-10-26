@@ -26,9 +26,6 @@ Pelacakan gestur menggunakan **OpenCV dan pemrosesan geometri**, tanpa MediaPipe
 | Lingkaran | Jurus Lingkaran Gelombang Kejut | Ledakan 360° dan efek knockback |
 | Garis lurus | Jurus Garis Tebasan | Tebasan lurus yang menembus musuh |
 | Zigzag | Jurus Zigzag Petir | Serangan petir yang berpindah antar musuh |
-
-> Catatan: tombol cadangan dapat digunakan untuk mengaktifkan jurus tanpa menggambar gestur. Periksa menu **Cara Bermain** di dalam game untuk melihat pemetaan tombol yang berlaku.
-
 ## Teknologi
 
 - Python 3.9 atau lebih baru
