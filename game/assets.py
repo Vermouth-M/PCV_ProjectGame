@@ -223,6 +223,19 @@ class AssetManager:
         rotated = pygame.transform.rotate(img, -math.degrees(angle_rad))
         offset = (math.cos(angle_rad) * length / 2, math.sin(angle_rad) * length / 2)
         return rotated, offset
+    def directional_frames(self, prefixes, length, thickness, angle_rad):
+        """
+        Seperti directional(), tapi untuk efek beranimasi (nama_0, nama_1, ...).
+        Return (daftar_surface_hasil_putar, offset) atau None kalau aset tidak ada.
+        """
+        frames = self.frames(*prefixes)
+        if not frames:
+            return None
+        length, thickness = max(1, int(length)), max(1, int(thickness))
+        rotated = [pygame.transform.rotate(self.resize(f, size=(length, thickness)),
+                                           -math.degrees(angle_rad)) for f in frames]
+        offset = (math.cos(angle_rad) * length / 2, math.sin(angle_rad) * length / 2)
+        return rotated, offset
 
     # ------------------------------------------------------------------
     # Laporan

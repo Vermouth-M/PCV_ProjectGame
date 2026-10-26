@@ -248,10 +248,11 @@ mengikuti ukuran gambar. Ukuran tampil dan kecepatan animasi diatur di `config.p
 - [x] Menu utama, Tes Kamera, Cara Bermain, Pengaturan (tersimpan di `settings.json`)
 - [x] Layar Jeda dan Game Over
 - [x] Kontrol dengan keyboard dan mouse
-### Bug Yang ada
+### Bug Fixed
 - [x] Forced Close jika Gerakan Salah
 - [x] Skor system membuat game crash
 - [x] Line sangat sulit dibuat/terdeteksi
-- [ ] Zigzag Freeze Saat Pertama Kali Digunakan
+- [x] Zigzag Freeze Saat Pertama Kali Digunakan
+- [ ] Sprite tidak ada saat skill nyala(untuk line dan slash)
 ### Balancing
-- [ ] Balancing Game Keseluruhan
+- [x] Balancing Game Keseluruhan

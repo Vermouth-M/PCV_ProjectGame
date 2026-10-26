@@ -6,6 +6,11 @@ from game import assets
 from game.assets import AssetManager
 from game.utils import distance
 
+def _effect_alpha(progress, animated):
+    """Efek 1 gambar: memudar terus. Efek beranimasi: penuh, baru memudar di 25% terakhir."""
+    if not animated:
+        return max(0.0, 1.0 - progress)
+    return 1.0 if progress < 0.75 else max(0.0, (1.0 - progress) / 0.25)
 
 class SkillEffect:
     """Efek visual sesaat -- damage sudah diterapkan saat efek dibuat."""
@@ -15,7 +20,7 @@ class SkillEffect:
         self.age = 0.0
         self.duration = duration
         self.color = color
-        self._sprite = None          # surface hasil regang+putar (milik efek ini sendiri)
+        self._sprites = []          # surface hasil regang+putar (milik efek ini sendiri)
         self._center = (0.0, 0.0)    # pusat sprite di koordinat dunia
 
     def update(self, dt):
@@ -29,22 +34,23 @@ class SkillEffect:
 
     # --- bantuan sprite arah ("pangkal di kiri-tengah, ujung ke kanan") ---
     def _use_directional(self, prefix, origin, length, thickness, angle_rad):
-        result = assets.get().directional((prefix,), length, thickness, angle_rad)
+        result = assets.get().directional_frames((prefix,), length, thickness, angle_rad)
         if result is None:
             return False
-        self._sprite, offset = result
+        self._sprites, offset = result
         self._center = (origin[0] + offset[0], origin[1] + offset[1])
         return True
 
     def _draw_sprite(self, surface, cam_x, cam_y):
-        self._sprite.set_alpha(int(255 * max(0.0, 1 - self.progress())))
-        rect = self._sprite.get_rect(center=(self._center[0] - cam_x, self._center[1] - cam_y))
-        surface.blit(self._sprite, rect)
+        n = len(self._sprites)
+        sprite = self._sprites[min(n - 1, int(self.progress() * n))]    # frame berganti sepanjang durasi
+        sprite.set_alpha(int(255 * _effect_alpha(self.progress(), n > 1)))
+        rect = sprite.get_rect(center=(self._center[0] - cam_x, self._center[1] - cam_y))
 
 
 class TriangleSlash(SkillEffect):
     def __init__(self, player_pos, facing, radius, angle_deg, color):
-        super().__init__("triangle", 0.25, color)
+        super().__init__("triangle", 0.5, color)
         self.origin = player_pos
         self.facing = facing
         self.radius = radius
@@ -65,7 +71,7 @@ class TriangleSlash(SkillEffect):
         return diff <= self.half_angle
 
     def draw(self, surface, cam_x, cam_y):
-        if self._sprite is not None:
+        if self._sprites:
             self._draw_sprite(surface, cam_x, cam_y)
             return
         ox, oy = self.origin[0] - cam_x, self.origin[1] - cam_y
@@ -83,35 +89,37 @@ class TriangleSlash(SkillEffect):
 
 class CircleShockwave(SkillEffect):
     def __init__(self, player_pos, radius, knockback, color):
-        super().__init__("circle", 0.35, color)
+        super().__init__("circle", 0.5, color)
         self.origin = player_pos
         self.radius = radius
         self.knockback = knockback
-        self._base = assets.get().image("effects/circle_shockwave")
+        self._frames = assets.get().frames("effects/circle_shockwave")
 
     def hits(self, enemy_pos):
         return distance(self.origin, enemy_pos) <= self.radius
 
     def draw(self, surface, cam_x, cam_y):
         ox, oy = int(self.origin[0] - cam_x), int(self.origin[1] - cam_y)
-        if self._base is not None:
-            size = max(2, int(self.radius * 2 * self.progress()))
-            img = AssetManager.resize(self._base, size=(size, size))
-            if img is self._base:
+        if self._frames:
+            n = len(self._frames)
+            base = self._frames[min(n - 1, int(self.progress() * n))]
+            if n > 1:       # animasi: ukuran tetap, frame yang berganti
+                size = max(2, int(self.radius * 2))
+                alpha = int(255 * _effect_alpha(self.progress(), True))
+            else:           # 1 gambar: membesar & memudar (perilaku lama)
+                size = max(2, int(self.radius * 2 * self.progress()))
+                alpha = max(0, 220 - int(220 * self.progress()))
+            img = AssetManager.resize(base, size=(size, size))
+            if img is base:
                 img = img.copy()          # jangan ubah alpha surface milik cache bersama
-            img.set_alpha(max(0, 220 - int(220 * self.progress())))
+            img.set_alpha(alpha)
             surface.blit(img, img.get_rect(center=(ox, oy)))
             return
-        r = max(1, int(self.radius * self.progress()))
-        alpha = max(0, 200 - int(200 * self.progress()))
-        surf = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
-        pygame.draw.circle(surf, (*self.color, alpha), (ox, oy), r, width=6)
-        surface.blit(surf, (0, 0))
 
 
 class LineSlash(SkillEffect):
     def __init__(self, player_pos, direction, length, width, color):
-        super().__init__("line", 0.25, color)
+        super().__init__("line", 0.4, color)
         self.origin = player_pos
         self.direction = direction
         self.length = length
@@ -130,7 +138,7 @@ class LineSlash(SkillEffect):
         return perp <= self.width / 2
 
     def draw(self, surface, cam_x, cam_y):
-        if self._sprite is not None:
+        if self._sprites:
             self._draw_sprite(surface, cam_x, cam_y)
             return
         ox, oy = self.origin[0] - cam_x, self.origin[1] - cam_y

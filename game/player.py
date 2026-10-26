@@ -152,7 +152,8 @@ class Player:
     def _draw_shield(self, surface, sx, sy):
         pulse = 4 * math.sin(pygame.time.get_ticks() / 120.0)
         half = self.radius + 14 + pulse
-        sprite = assets.get().image("effects/shield", size=int(half * 2))
+        frames = assets.get().frames("effects/shield", size=int(half * 2))
+        sprite = frames[(pygame.time.get_ticks() * config.ANIM_FPS["shield"] // 1000) % len(frames)] if frames else None
         if sprite is not None:
             surface.blit(sprite, sprite.get_rect(center=(sx, sy)))
         else:

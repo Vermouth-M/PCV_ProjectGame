@@ -51,7 +51,7 @@ PLAYER_BASE_ATTACK_RANGE = 260
 # Leveling
 # ---------------------------------------------------------------------------
 XP_BASE_REQUIREMENT = 20
-XP_GROWTH = 1.35
+XP_GROWTH = 1.5
 
 # ---------------------------------------------------------------------------
 # Musuh & Spawner
@@ -65,7 +65,7 @@ ENEMY_MAX_ALIVE = 220
 ENEMY_STATS = {
     "basic": {"hp": 20, "speed": 70, "damage": 8, "xp": 5, "radius": 14, "score": 10},
     "fast":  {"hp": 12, "speed": 140, "damage": 6, "xp": 6, "radius": 11, "score": 15},
-    "tank":  {"hp": 90, "speed": 40, "damage": 16, "xp": 18, "radius": 22, "score": 50},
+    "tank":  {"hp": 50, "speed": 40, "damage": 16, "xp": 18, "radius": 22, "score": 50},
 }
 ENEMY_NAMES = {
     "basic": "Basic",
@@ -208,7 +208,7 @@ ASSETS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 SPRITE_SCALE = {"player": 2.2, "enemy": 2.0, "xp_orb": 3.0, "projectile": 3.0}
 ENEMY_SPRITE_SCALE = {"tank": 8.0}
 # Kecepatan animasi (frame per detik)
-ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8}
+ANIM_FPS = {"player_idle": 4, "player_walk": 10, "enemy": 8, "xp_orb": 8, "shield": 10}
 
 LIGHTNING_THICKNESS = 30        # tebal sprite petir pada tiap sambungan (px)
 BACKGROUND_TILE_SCALE = 1.0     # skala tile latar (1.0 = ukuran asli gambar)
